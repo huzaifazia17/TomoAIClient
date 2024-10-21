@@ -9,6 +9,7 @@ const getChatsFromLocalStorage = () => {
   return chats ? JSON.parse(chats) : {};
 };
 
+//this is a test
 const saveChatsToLocalStorage = (chats) => {
   localStorage.setItem('tomoai-chats', JSON.stringify(chats));
 };
