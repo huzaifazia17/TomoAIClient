@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
+// Firebase config data from .env file
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,10 +14,9 @@ const firebaseConfig = {
 
 let app;
 
-if (!initializeApp.apps?.length) 
-{
+if (!initializeApp.apps?.length) {
   app = initializeApp(firebaseConfig);
-} 
+}
 else {
   app = initializeApp.apps[0];
 }
