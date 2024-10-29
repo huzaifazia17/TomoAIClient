@@ -46,8 +46,24 @@ export default function ChatLayout() {
   // Load spaces from localStorage on mount
   useEffect(() => {
     const storedSpaces = getSpacesFromLocalStorage();
+
+    // Ensure "Personal Assistant" space is always present
+    if (!storedSpaces["personal-assistant"]) {
+      storedSpaces["personal-assistant"] = {
+        title: "Personal Assistant",
+        chats: {
+          "default-chat": {
+            title: "General Chat",
+            messages: [],
+          },
+        },
+      };
+    }
+
     setSpaces(storedSpaces);
+    saveSpacesToLocalStorage(storedSpaces);
   }, []);
+
 
   // Save spaces to localStorage whenever they are updated
   useEffect(() => {
@@ -140,17 +156,18 @@ export default function ChatLayout() {
     setNewSpaceName(spaces[spaceId].title);
   };
 
-  const handleSaveSpaceName = (spaceId) => {
+  const handleSaveSpaceName = (spaceId, newName) => {
     const updatedSpaces = {
       ...spaces,
       [spaceId]: {
         ...spaces[spaceId],
-        title: newSpaceName,
+        title: newName,
       },
     };
-    setSpaces(updatedSpaces);
-    setEditingSpaceId(null); // Stop editing
+    setSpaces(updatedSpaces); // Update the spaces state
+    saveSpacesToLocalStorage(updatedSpaces); // Update local storage if needed
   };
+
 
   // Edit chat name
   const handleEditChatName = (spaceId, chatId) => {
@@ -231,7 +248,7 @@ export default function ChatLayout() {
                       {spaces[spaceId].title}
                     </span>
                   )}
-                  <FontAwesomeIcon
+                  {/* <FontAwesomeIcon
                     icon={faEdit}
                     className="ml-2 text-gray-300 cursor-pointer"
                     onClick={() => handleEditSpaceName(spaceId)}
@@ -240,7 +257,7 @@ export default function ChatLayout() {
                     icon={faTrash}
                     className="ml-2 text-gray-300 cursor-pointer delete-icon"
                     onClick={() => handleDeleteSpace(spaceId)}
-                  />
+                  /> */}
                   <FontAwesomeIcon
                     icon={faPlus}
                     className="ml-2 text-gray-300 cursor-pointer"
@@ -307,7 +324,14 @@ export default function ChatLayout() {
       {/* Right Side: Space or Chat UI */}
       <div className="w-4/5 p-4 flex flex-col bg-chat">
         {currentSpaceId && !currentChatId ? (
-          <SpacePage spaceTitle={spaces[currentSpaceId].title} />
+          <SpacePage
+            spaceTitle={spaces[currentSpaceId].title}
+            spaceId={currentSpaceId}
+            handleEditSpaceName={handleEditSpaceName}
+            handleSaveSpaceName={handleSaveSpaceName}
+            handleDeleteSpace={handleDeleteSpace}
+          />
+
         ) : currentChatId ? (
           <>
             {/* Top Bar with Logo and Profile Icon */}
