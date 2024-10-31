@@ -52,7 +52,7 @@ export default function ChatLayout() {
     fetchUserRole();
   }, []);
 
-
+  //test comment
   // Handle logout function
   const handleLogout = async () => {
     try {
