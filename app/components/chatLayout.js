@@ -32,6 +32,25 @@ export default function ChatLayout() {
   const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown state
   const dropdownRef = useRef(null); // Reference to dropdown
   const router = useRouter();
+  const [userRole, setUserRole] = useState(null);  // New state for user role
+  useEffect(() => {
+    // Fetch user role on component mount
+    const fetchUserRole = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const response = await fetch(`/api/users/${user.uid}`);
+          const data = await response.json();
+          setUserRole(data.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
 
   // Handle logout function
   const handleLogout = async () => {

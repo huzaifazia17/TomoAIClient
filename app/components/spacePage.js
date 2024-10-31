@@ -16,10 +16,10 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     const router = useRouter();
 
     const [documents, setDocuments] = useState([]);
-    const [users, setUsers] = useState([
-        { id: 1, firstName: 'User', lastName: 'One', email: 'userone@example.com', included: false },
-        { id: 2, firstName: 'User', lastName: 'Two', email: 'usertwo@example.com', included: false },
-    ]);
+    const [spaceUsers, setSpaceUsers] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
+    const [isUserOverlayVisible, setUserOverlayVisible] = useState(false);
+    const [selectedUsers, setSelectedUsers] = useState([]); // Array to hold selected user IDs
 
     const handleLogout = async () => {
         try {
@@ -59,6 +59,21 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         };
     }, []);
 
+    // Fetch all users from the database
+    const fetchAllUsers = async () => {
+        try {
+            const response = await fetch('http://localhost:3009/api/users');
+            if (!response.ok) {
+                throw new Error("Failed to fetch users");
+            }
+            const usersData = await response.json();
+            setAllUsers(usersData);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+        }
+    };
+
+    // Handle document upload
     const handleUploadDocument = (event) => {
         const file = event.target.files[0];
         if (file && file.type === 'application/pdf') {
@@ -67,14 +82,41 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         }
     };
 
+    // Handle document deletion
     const handleDeleteDocument = (docId) => {
         setDocuments(documents.filter((doc) => doc.id !== docId));
     };
 
-    const toggleUserInclusion = (userId) => {
-        setUsers(users.map(user =>
-            user.id === userId ? { ...user, included: !user.included } : user
-        ));
+    // Handle user deletion from space
+    const handleDeleteUserFromSpace = (userId) => {
+        setSpaceUsers(spaceUsers.filter((user) => user.id !== userId));
+    };
+
+    // Show overlay to add users
+    const handleAddUser = () => {
+        fetchAllUsers();
+        setUserOverlayVisible(true);
+    };
+
+    // Toggle user selection in the overlay
+    const toggleUserSelection = (userId) => {
+        setSelectedUsers((prevSelected) => {
+            if (prevSelected.includes(userId)) {
+                return prevSelected.filter((id) => id !== userId);
+            } else {
+                return [...prevSelected, userId];
+            }
+        });
+    };
+
+    // Add selected users to space
+    const handleAddSelectedUsers = () => {
+        const newUsers = allUsers.filter(
+            (user) => selectedUsers.includes(user.id) && !spaceUsers.some((u) => u.id === user.id)
+        );
+        setSpaceUsers([...spaceUsers, ...newUsers]);
+        setUserOverlayVisible(false); // Close overlay
+        setSelectedUsers([]); // Clear selected users
     };
 
     return (
@@ -181,7 +223,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
                 <div className="w-px bg-gray-500 mx-4"></div>
 
-                <div className="w-1/2 p-4 bg-transparent rounded-lg">
+                <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
                     <h2 className="text-white text-xl mb-4 text-center">User Management</h2>
                     <table className="w-full text-white bg-transparent">
                         <thead>
@@ -189,28 +231,67 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                                 <th className="text-left p-2">First Name</th>
                                 <th className="text-left p-2">Last Name</th>
                                 <th className="text-left p-2">Email</th>
-                                <th className="text-center p-2">Include</th>
+                                <th className="text-center p-2">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map((user) => (
+                            {spaceUsers.map((user) => (
                                 <tr key={user.id}>
                                     <td className="p-2">{user.firstName}</td>
                                     <td className="p-2">{user.lastName}</td>
                                     <td className="p-2">{user.email}</td>
                                     <td className="p-2 text-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={user.included}
-                                            onChange={() => toggleUserInclusion(user.id)}
-                                        />
+                                        <button
+                                            onClick={() => handleDeleteUserFromSpace(user.id)}
+                                            className="bg-red-500 p-1 rounded"
+                                        >
+                                            <FontAwesomeIcon icon={faTrash} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                    <div className="absolute top-4 right-4">
+                        <button onClick={handleAddUser} className="text-green-500 text-2xl">
+                            <FontAwesomeIcon icon={faPlus} />
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* User Selection Overlay */}
+            {isUserOverlayVisible && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center">
+                    <div className="bg-gray-800 p-6 rounded-lg w-1/2">
+                        <h2 className="text-white text-center text-xl mb-4">Add Users to Space</h2>
+                        <ul className="text-white space-y-2 max-h-80 overflow-y-auto">
+                            {allUsers.map((user) => (
+                                <li key={user.id} className="flex items-center justify-between p-2 bg-gray-700 rounded">
+                                    <span>{user.firstName} {user.lastName} ({user.email})</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedUsers.includes(user.id)}
+                                        onChange={() => toggleUserSelection(user.id)}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                        <button
+                            onClick={handleAddSelectedUsers}
+                            className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                            Add Selected
+                        </button>
+                        <button
+                            onClick={() => setUserOverlayVisible(false)}
+                            className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
