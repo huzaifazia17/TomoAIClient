@@ -22,7 +22,7 @@ export default function ChatPage({ currentChatId, chats, updateChatMessages }) {
 
     try {
       // Send the user's prompt to the backend
-      const res = await axios.post('http://localhost:3001/api/chat', { prompt });
+      const res = await axios.post('http://localhost:3009/api/chat', { prompt });
 
       // Add AI response to the conversation
       const aiResponse = { role: 'ai', content: res.data.message };
