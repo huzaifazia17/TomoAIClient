@@ -1,18 +1,18 @@
 'use client';
-//hanzalla test
 import { useState, useEffect, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import ChatPage from './chatPage';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEdit, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons'; // Import icons
-import Image from 'next/image';  // Next.js Image component for optimization
-import logo from '../resources/logo.png';  // Import your logo
-import chatIcon from '../resources/chatIcon.png'; // Import the AI chat icon
-import whiteLogoOnly from '../resources/whiteLogoOnly.png'; // Import the header logo for chat section
-import SpacePage from './spacePage';  // Import Space UI component
+import { faUser, faEdit, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import Image from 'next/image';
+import logo from '../resources/logo.png';
+import chatIcon from '../resources/chatIcon.png';
+import whiteLogoOnly from '../resources/whiteLogoOnly.png';
+import SpacePage from './spacePage';
 
+// Helper functions for local storage
 const getSpacesFromLocalStorage = () => {
   const spaces = localStorage.getItem('tomoai-spaces');
   return spaces ? JSON.parse(spaces) : {};
@@ -22,25 +22,62 @@ const saveSpacesToLocalStorage = (spaces) => {
   localStorage.setItem('tomoai-spaces', JSON.stringify(spaces));
 };
 
+// Function to generate a random space ID
+const generateSpaceId = () => `space-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
 export default function ChatLayout() {
   const [spaces, setSpaces] = useState({});
   const [currentSpaceId, setCurrentSpaceId] = useState(null);
   const [currentChatId, setCurrentChatId] = useState(null);
-  const [editingSpaceId, setEditingSpaceId] = useState(null); // Space being edited
+  const [editingSpaceId, setEditingSpaceId] = useState(null);
   const [newSpaceName, setNewSpaceName] = useState('');
-  const [editingChatId, setEditingChatId] = useState(null); // Chat being edited
+  const [editingChatId, setEditingChatId] = useState(null);
   const [newChatName, setNewChatName] = useState('');
-  const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown state
-  const dropdownRef = useRef(null); // Reference to dropdown
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const dropdownRef = useRef(null);
   const router = useRouter();
-  const [userRole, setUserRole] = useState(null);  // New state for user role
+  const [userRole, setUserRole] = useState(null);
+  const [userFirebaseUid, setUserFirebaseUid] = useState(null);
+  // Initialize a variable to track the highest space number
+  let highestSpaceNumber = 0;
+  /*   useEffect(() => {
+      // Fetch user role on component mount
+      const fetchUserRole = async () => {
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const response = await fetch(`/api/users/${user.uid}`);
+            const data = await response.json();
+            setUserRole(data.role);
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      };
+  
+      fetchUserRole();
+    }, []); */
+  // Get the current user's firebaseUid
   useEffect(() => {
-    // Fetch user role on component mount
+    const fetchFirebaseUid = () => {
+      const user = auth.currentUser;
+      if (user) {
+        setUserFirebaseUid(user.uid);
+      } else {
+        router.push('/signin');
+      }
+    };
+
+    fetchFirebaseUid();
+  }, [router]);
+
+  // Fetch user role on component mount
+  useEffect(() => {
     const fetchUserRole = async () => {
       try {
         const user = auth.currentUser;
         if (user) {
-          const response = await fetch(`/api/users/${user.uid}`);
+          const response = await fetch(`http://localhost:3009/api/users/${user.uid}`);
           const data = await response.json();
           setUserRole(data.role);
         }
@@ -52,8 +89,7 @@ export default function ChatLayout() {
     fetchUserRole();
   }, []);
 
-  //test comment
-  // Handle logout function
+  // Handle logout
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -63,26 +99,77 @@ export default function ChatLayout() {
     }
   };
 
-  // Load spaces from localStorage on mount
-  useEffect(() => {
-    const storedSpaces = getSpacesFromLocalStorage();
+  // Add this function above your return statement
+  const handleEditSpaceName = (spaceId) => {
+    setEditingSpaceId(spaceId);
+    setNewSpaceName(spaces[spaceId].title);
+  };
+  const handleDeleteSpace = async (spaceId) => {
+    try {
+      // Make sure the URL points to the correct backend port
+      const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-    // Ensure "Personal Assistant" space is always present
-    if (!storedSpaces["personal-assistant"]) {
-      storedSpaces["personal-assistant"] = {
-        title: "Personal Assistant",
-        chats: {
-          "default-chat": {
-            title: "General Chat",
-            messages: [],
-          },
-        },
-      };
+      if (!response.ok) {
+        throw new Error('Failed to delete space');
+      }
+
+      // Remove the space from the state
+      setSpaces((prevSpaces) => {
+        const updatedSpaces = { ...prevSpaces };
+        delete updatedSpaces[spaceId];
+        return updatedSpaces;
+      });
+
+      // Reset current space and chat if the deleted space was active
+      if (currentSpaceId === spaceId) {
+        setCurrentSpaceId(null);
+        setCurrentChatId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting space:', error);
     }
+  };
 
-    setSpaces(storedSpaces);
-    saveSpacesToLocalStorage(storedSpaces);
+  // Fetch spaces from the database on component mount
+  useEffect(() => {
+    const fetchSpacesFromDatabase = async () => {
+      try {
+        const firebaseUid = auth.currentUser?.uid;
+        if (!firebaseUid) {
+          console.error('No user is logged in.');
+          return;
+        }
+
+        const response = await fetch(`http://localhost:3009/api/spaces?firebaseUid=${firebaseUid}`);
+        if (!response.ok) throw new Error('Failed to fetch spaces');
+
+        const { spaces: spacesData } = await response.json(); // Destructure to get the spaces array
+        console.log('Fetched spaces data:', spacesData);
+
+        // Ensure spacesData is an array
+        if (!Array.isArray(spacesData)) {
+          throw new Error('Invalid data format: Expected an array of spaces');
+        }
+
+        // Transform spacesData into the format used in the state
+        const spacesObj = spacesData.reduce((acc, space) => {
+          acc[space.spaceId] = { title: space.spaceName, chats: {} };
+          return acc;
+        }, {});
+
+        setSpaces(spacesObj);
+      } catch (error) {
+        console.error('Error fetching spaces:', error);
+      }
+    };
+
+    fetchSpacesFromDatabase();
   }, []);
+
+
 
 
   // Save spaces to localStorage whenever they are updated
@@ -90,22 +177,7 @@ export default function ChatLayout() {
     saveSpacesToLocalStorage(spaces);
   }, [spaces]);
 
-  // Create a new space
-  const createNewSpace = () => {
-    const newSpaceId = `space-${Date.now()}`;
-    const newSpaces = {
-      ...spaces,
-      [newSpaceId]: {
-        title: `New Space ${Object.keys(spaces).length + 1}`,
-        chats: {},
-      },
-    };
-    setSpaces(newSpaces);
-    setCurrentSpaceId(newSpaceId);
-    setCurrentChatId(null); // No chat selected
-  };
-
-  // Create a new chat within a space
+  // Function to create a new chat within a space
   const createNewChat = (spaceId) => {
     const newChatId = `chat-${Date.now()}`;
     const updatedSpaces = {
@@ -136,20 +208,6 @@ export default function ChatLayout() {
     setCurrentChatId(chatId);
   };
 
-  // Delete space
-  const handleDeleteSpace = (spaceId) => {
-    const updatedSpaces = { ...spaces };
-    delete updatedSpaces[spaceId];
-    setSpaces(updatedSpaces);
-
-    // Add this check to reset the current space and chat if the deleted space was active
-    if (currentSpaceId === spaceId) {
-      setCurrentSpaceId(null);
-      setCurrentChatId(null);
-    }
-  };
-
-
   const handleDeleteChat = (spaceId, chatId) => {
     const updatedSpaces = {
       ...spaces,
@@ -160,7 +218,7 @@ export default function ChatLayout() {
         },
       },
     };
-    delete updatedSpaces[spaceId].chats[chatId];
+    delete updatedSpaces[spaceId].chats[chatId]; // Remove the chat
     setSpaces(updatedSpaces);
 
     // Reset `currentChatId` if the deleted chat was active
@@ -168,26 +226,6 @@ export default function ChatLayout() {
       setCurrentChatId(null);
     }
   };
-
-
-  // Edit space name
-  const handleEditSpaceName = (spaceId) => {
-    setEditingSpaceId(spaceId);
-    setNewSpaceName(spaces[spaceId].title);
-  };
-
-  const handleSaveSpaceName = (spaceId, newName) => {
-    const updatedSpaces = {
-      ...spaces,
-      [spaceId]: {
-        ...spaces[spaceId],
-        title: newName,
-      },
-    };
-    setSpaces(updatedSpaces); // Update the spaces state
-    saveSpacesToLocalStorage(updatedSpaces); // Update local storage if needed
-  };
-
 
   // Edit chat name
   const handleEditChatName = (spaceId, chatId) => {
@@ -209,9 +247,92 @@ export default function ChatLayout() {
         },
       },
     };
-    setSpaces(updatedSpaces);
+    setSpaces(updatedSpaces); // Update the chat name in state
     setEditingChatId(null); // Stop editing
   };
+
+
+  const createNewSpace = async () => {
+    try {
+      const firebaseUid = auth.currentUser?.uid;
+      if (!firebaseUid) {
+        console.error('No user is logged in.');
+        return;
+      }
+
+      // Increment the highest space number and use it for the new space name
+      highestSpaceNumber += 1;
+      const newSpaceId = `space-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      const newSpaceName = `New Space`;
+
+      const newSpace = {
+        firebaseUid,
+        spaceId: newSpaceId,
+        spaceName: newSpaceName,
+        users: [firebaseUid],
+      };
+
+      // API call to create the new space in the database
+      const response = await fetch('http://localhost:3009/api/spaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSpace),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create new space');
+      }
+
+      const data = await response.json();
+
+      // Add the new space to the state
+      setSpaces((prevSpaces) => ({
+        ...prevSpaces,
+        [data.space.spaceId]: {
+          title: data.space.spaceName,
+          chats: {},
+        },
+      }));
+
+      setCurrentSpaceId(data.space.spaceId);
+      setCurrentChatId(null);
+    } catch (error) {
+      console.error('Error creating new space:', error);
+    }
+  };
+
+
+
+
+
+  // Function to save the space name in the database
+  const handleSaveSpaceName = async (spaceId, newName) => {
+    try {
+      const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ spaceName: newName }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update space name');
+      }
+
+      // Update local state
+      setSpaces((prevSpaces) => ({
+        ...prevSpaces,
+        [spaceId]: {
+          ...prevSpaces[spaceId],
+          title: newName,
+        },
+      }));
+    } catch (error) {
+      console.error('Error updating space name:', error);
+    }
+  };
+
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -228,17 +349,18 @@ export default function ChatLayout() {
     };
   }, []);
 
+
   return (
-    <div className="flex h-screen" style={{ backgroundColor: '#091720' }}> {/* Darker sidebar background */}
+    <div className="flex h-screen" style={{ backgroundColor: '#091720' }}>
       {/* Sidebar */}
       <div className="w-1/5 bg-gray-900 p-4 flex flex-col justify-between">
         {/* Top section for logo */}
         <div className="flex justify-center mb-4">
           <Image
-            src={logo}  // Your logo image
+            src={logo} // Your logo image
             alt="TomoAI Logo"
-            width={100}  // Adjust as necessary
-            height={40}  // Adjust as necessary
+            width={100} // Adjust as necessary
+            height={40} // Adjust as necessary
             className="object-contain"
           />
         </div>
@@ -252,8 +374,7 @@ export default function ChatLayout() {
               <div key={spaceId} className="mb-4">
                 {/* Space */}
                 <div
-                  className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${currentSpaceId === spaceId ? 'bg-gray-700' : 'bg-slate-700'
-                    }`}  // Highlight the selected space
+                  className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${currentSpaceId === spaceId ? 'bg-gray-700' : 'bg-slate-700'}`}
                 >
                   {editingSpaceId === spaceId ? (
                     <input
@@ -268,16 +389,6 @@ export default function ChatLayout() {
                       {spaces[spaceId].title}
                     </span>
                   )}
-                  {/* <FontAwesomeIcon
-                    icon={faEdit}
-                    className="ml-2 text-gray-300 cursor-pointer"
-                    onClick={() => handleEditSpaceName(spaceId)}
-                  />
-                  <FontAwesomeIcon
-                    icon={faTrash}
-                    className="ml-2 text-gray-300 cursor-pointer delete-icon"
-                    onClick={() => handleDeleteSpace(spaceId)}
-                  /> */}
                   <FontAwesomeIcon
                     icon={faPlus}
                     className="ml-2 text-gray-300 cursor-pointer"
@@ -293,8 +404,7 @@ export default function ChatLayout() {
                     Object.keys(spaces[spaceId].chats).map((chatId) => (
                       <div
                         key={chatId}
-                        className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${currentChatId === chatId ? 'bg-gray-700' : 'bg-gray-900'
-                          }`}  // Highlight the selected chat
+                        className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${currentChatId === chatId ? 'bg-gray-700' : 'bg-gray-900'}`}
                       >
                         {editingChatId === chatId ? (
                           <input
@@ -340,8 +450,7 @@ export default function ChatLayout() {
         </div>
       </div>
 
-
-      {/* Right Side: Space or Chat UI */}
+      {/* Space and Chat UI */}
       <div className="w-4/5 p-4 flex flex-col bg-chat">
         {currentSpaceId && !currentChatId ? (
           <SpacePage
@@ -351,12 +460,10 @@ export default function ChatLayout() {
             handleSaveSpaceName={handleSaveSpaceName}
             handleDeleteSpace={handleDeleteSpace}
           />
-
         ) : currentChatId ? (
           <>
             {/* Top Bar with Logo and Profile Icon */}
             <div className="bg-gray-800 bg-transparent p-4 rounded-t-lg flex justify-between items-center">
-              {/* Logo */}
               <Image
                 src={whiteLogoOnly}
                 alt="TomoAI Logo"
@@ -400,7 +507,7 @@ export default function ChatLayout() {
                         <Image
                           src={chatIcon} // Display the chat icon before the AI response
                           alt="AI Icon"
-                          width={20} // Adjust icon size as necessary
+                          width={20}
                           height={20}
                           className="mr-2"
                         />
@@ -416,23 +523,20 @@ export default function ChatLayout() {
               )}
             </div>
 
-
             {/* Message Input */}
             <div className="mt-4 flex justify-center">
               <ChatPage
                 currentChatId={currentChatId}
-                // Add this check to prevent accessing undefined `chats` if `currentSpaceId` is invalid
+                // Check to prevent accessing undefined `chats`
                 chats={currentSpaceId && spaces[currentSpaceId] ? spaces[currentSpaceId].chats : {}}
                 updateChatMessages={(chatId, message) => {
                   const updatedSpaces = { ...spaces };
-                  // Ensure `currentSpaceId` and `chats[chatId]` exist before pushing the message
                   if (updatedSpaces[currentSpaceId] && updatedSpaces[currentSpaceId].chats[chatId]) {
                     updatedSpaces[currentSpaceId].chats[chatId].messages.push(message);
                     setSpaces(updatedSpaces);
                   }
                 }}
               />
-
             </div>
           </>
         ) : (
@@ -442,8 +546,6 @@ export default function ChatLayout() {
         )}
       </div>
 
-
-
       {/* Hide scrollbar for the chat area */}
       <style jsx>{`
         .no-scrollbar::-webkit-scrollbar {
@@ -452,12 +554,11 @@ export default function ChatLayout() {
         .no-scrollbar {
           scrollbar-width: none; /* For Firefox */
         }
-
-        /* Make delete icon turn red on hover */
         .delete-icon:hover {
           color: red !important;
         }
       `}</style>
     </div>
   );
+
 }
