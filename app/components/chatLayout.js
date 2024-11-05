@@ -56,6 +56,7 @@ export default function ChatLayout() {
     fetchFirebaseUid();
   }, [router]);
 
+
   // Fetch user role on component mount
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -204,24 +205,50 @@ export default function ChatLayout() {
   }, [spaces]);
 
   // Function to create a new chat within a space
-  const createNewChat = (spaceId) => {
+  const createNewChat = async (spaceId) => {
     const newChatId = `chat-${Date.now()}`;
-    const updatedSpaces = {
-      ...spaces,
-      [spaceId]: {
-        ...spaces[spaceId],
-        chats: {
-          ...spaces[spaceId].chats,
-          [newChatId]: {
-            title: `New Chat ${Object.keys(spaces[spaceId].chats).length + 1}`,
-            messages: [],
+    const chatName = `New Chat ${Object.keys(spaces[spaceId].chats).length + 1}`;
+
+    try {
+      // Make a POST request to create the chat in the database
+      const response = await fetch('http://localhost:3009/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firebaseUid: userFirebaseUid,
+          spaceId,
+          chatId: newChatId,
+          chatName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create chat');
+      }
+
+      const newChat = await response.json();
+
+      // Update the chat state locally
+      const updatedSpaces = {
+        ...spaces,
+        [spaceId]: {
+          ...spaces[spaceId],
+          chats: {
+            ...spaces[spaceId].chats,
+            [newChat.chatId]: {
+              title: newChat.chatName,
+              messages: [],
+            },
           },
         },
-      },
-    };
-    setSpaces(updatedSpaces);
-    setCurrentChatId(newChatId);
+      };
+      setSpaces(updatedSpaces);
+      setCurrentChatId(newChatId);
+    } catch (error) {
+      console.error('Error creating chat:', error);
+    }
   };
+
 
   // Switch to a space or chat
   const switchSpace = (spaceId) => {
@@ -234,24 +261,91 @@ export default function ChatLayout() {
     setCurrentChatId(chatId);
   };
 
-  const handleDeleteChat = (spaceId, chatId) => {
-    const updatedSpaces = {
-      ...spaces,
-      [spaceId]: {
-        ...spaces[spaceId],
-        chats: {
-          ...spaces[spaceId].chats,
-        },
-      },
-    };
-    delete updatedSpaces[spaceId].chats[chatId]; // Remove the chat
-    setSpaces(updatedSpaces);
+  const handleDeleteChat = async (spaceId, chatId) => {
+    try {
+      // Make a DELETE request to remove the chat from the database
+      const response = await fetch(`http://localhost:3009/api/chats/${chatId}`, {
+        method: 'DELETE',
+      });
 
-    // Reset `currentChatId` if the deleted chat was active
-    if (currentChatId === chatId) {
-      setCurrentChatId(null);
+      if (!response.ok) {
+        throw new Error('Failed to delete chat');
+      }
+
+      // Remove the chat from local state
+      const updatedSpaces = {
+        ...spaces,
+        [spaceId]: {
+          ...spaces[spaceId],
+          chats: {
+            ...spaces[spaceId].chats,
+          },
+        },
+      };
+      delete updatedSpaces[spaceId].chats[chatId];
+      setSpaces(updatedSpaces);
+
+      if (currentChatId === chatId) {
+        setCurrentChatId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
     }
   };
+
+  useEffect(() => {
+    const fetchAllChats = async () => {
+      try {
+        const firebaseUid = auth.currentUser?.uid;
+        if (!firebaseUid) {
+          console.error("No user is logged in.");
+          return;
+        }
+
+        // Fetch all spaces for the current user
+        const response = await fetch(`http://localhost:3009/api/spaces?firebaseUid=${firebaseUid}`);
+        if (!response.ok) throw new Error("Failed to fetch spaces");
+
+        const { spaces: spacesData } = await response.json();
+        console.log("Fetched spaces data:", spacesData);
+
+        if (!Array.isArray(spacesData)) {
+          throw new Error("Invalid data format: Expected an array of spaces");
+        }
+
+        // Transform spacesData into the format used in the state
+        let spacesObj = spacesData.reduce((acc, space) => {
+          acc[space.spaceId] = { title: space.spaceName, chats: {} };
+          return acc;
+        }, {});
+
+        // Fetch chats for all spaces
+        for (const space of spacesData) {
+          const chatResponse = await fetch(`http://localhost:3009/api/chats?firebaseUid=${firebaseUid}&spaceId=${space.spaceId}`);
+          if (!chatResponse.ok) throw new Error(`Failed to fetch chats for spaceId: ${space.spaceId}`);
+
+          const { chats } = await chatResponse.json();
+          const chatsObj = chats.reduce((acc, chat) => {
+            acc[chat.chatId] = { title: chat.chatName, messages: [] };
+            return acc;
+          }, {});
+
+          // Add chats to the respective space in spacesObj
+          spacesObj[space.spaceId].chats = chatsObj;
+        }
+
+        // Update the state with all spaces and their respective chats
+        setSpaces(spacesObj);
+      } catch (error) {
+        console.error("Error fetching chats for all spaces:", error);
+      }
+    };
+
+    fetchAllChats();
+    // Pass an empty dependency array to ensure the effect runs only once
+  }, []);
+
+
 
   // Edit chat name
   const handleEditChatName = (spaceId, chatId) => {
@@ -259,71 +353,96 @@ export default function ChatLayout() {
     setNewChatName(spaces[spaceId].chats[chatId].title);
   };
 
-  const handleSaveChatName = (spaceId, chatId) => {
-    const updatedSpaces = {
-      ...spaces,
-      [spaceId]: {
-        ...spaces[spaceId],
-        chats: {
-          ...spaces[spaceId].chats,
-          [chatId]: {
-            ...spaces[spaceId].chats[chatId],
-            title: newChatName,
+  const handleSaveChatName = async (spaceId, chatId) => {
+    try {
+      // Update the chat name in the state
+      const updatedSpaces = {
+        ...spaces,
+        [spaceId]: {
+          ...spaces[spaceId],
+          chats: {
+            ...spaces[spaceId].chats,
+            [chatId]: {
+              ...spaces[spaceId].chats[chatId],
+              title: newChatName,
+            },
           },
         },
-      },
-    };
-    setSpaces(updatedSpaces); // Update the chat name in state
-    setEditingChatId(null); // Stop editing
-  };
-
-
-  const createNewSpace = async () => {
-    try {
-      const firebaseUid = auth.currentUser?.uid;
-      if (!firebaseUid) {
-        console.error('No user is logged in.');
-        return;
-      }
-
-      // Increment the highest space number and use it for the new space name
-      highestSpaceNumber += 1;
-      const newSpaceId = `space-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-      const newSpaceName = `New Space`;
-
-      const newSpace = {
-        firebaseUid,
-        spaceId: newSpaceId,
-        spaceName: newSpaceName,
-        users: [firebaseUid],
       };
+      setSpaces(updatedSpaces);
+      setEditingChatId(null); // Stop editing
 
-      // API call to create the new space in the database
-      const response = await fetch('http://localhost:3009/api/spaces', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSpace),
+      // Make an API call to update the chat name in the database
+      const response = await fetch(`http://localhost:3009/api/chats/${chatId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chatName: newChatName }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create new space');
+        throw new Error('Failed to update chat name in the database');
       }
 
-      const data = await response.json();
-
-      // Add the new space to the state
-      setSpaces((prevSpaces) => ({
-        ...prevSpaces,
-        [data.space.spaceId]: {
-          title: data.space.spaceName,
-          chats: {},
-        },
-      }));
-
-      setCurrentSpaceId(data.space.spaceId);
-      setCurrentChatId(null);
+      console.log('Chat name updated successfully in the database');
     } catch (error) {
-      console.error('Error creating new space:', error);
+      console.error('Error updating chat name:', error);
+    }
+  };
+
+
+
+  const createNewSpace = async () => {
+    if (userRole === 'ta' || userRole === 'professor') {
+      try {
+        const firebaseUid = auth.currentUser?.uid;
+        if (!firebaseUid) {
+          console.error('No user is logged in.');
+          return;
+        }
+
+        // Increment the highest space number and use it for the new space name
+        highestSpaceNumber += 1;
+        const newSpaceId = `space-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        const newSpaceName = `New Space`;
+
+        const newSpace = {
+          firebaseUid,
+          spaceId: newSpaceId,
+          spaceName: newSpaceName,
+          users: [firebaseUid],
+        };
+
+        // API call to create the new space in the database
+        const response = await fetch('http://localhost:3009/api/spaces', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newSpace),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create new space');
+        }
+
+        const data = await response.json();
+
+        // Add the new space to the state
+        setSpaces((prevSpaces) => ({
+          ...prevSpaces,
+          [data.space.spaceId]: {
+            title: data.space.spaceName,
+            chats: {},
+          },
+        }));
+
+        setCurrentSpaceId(data.space.spaceId);
+        setCurrentChatId(null);
+      } catch (error) {
+        console.error('Error creating new space:', error);
+      }
+    } else {
+      console.log('Only TAs or professors can create a new space.');
     }
   };
 
@@ -375,6 +494,8 @@ export default function ChatLayout() {
     };
   }, []);
 
+  // Check if the user is not authorized to create or view spaces
+  const isAuthorized = userRole === 'ta' || userRole === 'professor';
 
   return (
     <div className="flex h-screen" style={{ backgroundColor: '#091720' }}>
@@ -466,26 +587,84 @@ export default function ChatLayout() {
 
         {/* Bottom for new space button */}
         <div className="flex justify-center">
-          <button
-            onClick={createNewSpace}
-            className="bg-gray-700 text-white px-4 py-2 rounded-xl"
-            style={{ width: '50%' }} // Button width 50% of the sidebar
-          >
-            + New Space
-          </button>
+          {/* Conditionally render the "New Space" button */}
+          {(userRole === 'ta' || userRole === 'professor') && (
+            <button
+              onClick={createNewSpace}
+              className="bg-gray-700 text-white px-4 py-2 rounded-xl"
+              style={{ width: '50%' }} // Button width 50% of the sidebar
+            >
+              + New Space
+            </button>
+
+          )}
+
+
+
         </div>
       </div>
 
       {/* Space and Chat UI */}
       <div className="w-4/5 p-4 flex flex-col bg-chat">
         {currentSpaceId && !currentChatId ? (
-          <SpacePage
-            spaceTitle={spaces[currentSpaceId].title}
-            spaceId={currentSpaceId}
-            handleEditSpaceName={handleEditSpaceName}
-            handleSaveSpaceName={handleSaveSpaceName}
-            handleDeleteSpace={handleDeleteSpace}
-          />
+          // Check if the userRole is either 'ta' or 'professor' before rendering SpacePage
+          userRole === 'ta' || userRole === 'professor' ? (
+            <SpacePage
+              spaceTitle={spaces[currentSpaceId].title}
+              spaceId={currentSpaceId}
+              handleEditSpaceName={handleEditSpaceName}
+              handleSaveSpaceName={handleSaveSpaceName}
+              handleDeleteSpace={handleDeleteSpace}
+            />
+          ) : (
+            // Show a message if the user is a 'student' and not authorized
+            <div className="bg-transparent p-4 flex flex-col h-full">
+              <div className="flex justify-between items-center">
+                <Image
+                  src={whiteLogoOnly}
+                  alt="TomoAI Logo"
+                  width={100}
+                  height={40}
+                  className="object-contain"
+                />
+
+                <div className="relative" ref={dropdownRef}>
+                  <FontAwesomeIcon
+                    icon={faUser}
+                    className="text-white cursor-pointer"
+                    size="lg"
+                    onClick={() => setDropdownVisible(!dropdownVisible)}
+                  />
+                  {dropdownVisible && (
+                    <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-lg z-10">
+                      <ul className="py-1">
+                        <li className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
+                          <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
+                        </li>
+                        <hr className="border-t border-gray-600 my-1" />
+                        <li
+                          onClick={handleLogout}
+                          className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center"
+                        >
+                          <FontAwesomeIcon icon={faTrash} className="mr-2" /> Logout
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-grow items-center justify-center">
+                <p className="text-gray-500 text-center">
+                  Only Professors or TA's have access to Space Management
+                </p>
+              </div>
+            </div>
+
+
+
+
+          )
         ) : currentChatId ? (
           <>
             {/* Top Bar with Logo and Profile Icon */}
@@ -512,7 +691,10 @@ export default function ChatLayout() {
                         <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
                       </li>
                       <hr className="border-t border-gray-600 my-1" />
-                      <li onClick={handleLogout} className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
+                      <li
+                        onClick={handleLogout}
+                        className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center"
+                      >
                         <FontAwesomeIcon icon={faTrash} className="mr-2" /> Logout
                       </li>
                     </ul>
@@ -523,12 +705,20 @@ export default function ChatLayout() {
 
             {/* Chat Messages */}
             <div className="flex-grow p-4 overflow-y-auto no-scrollbar">
-              {currentSpaceId && currentChatId && spaces[currentSpaceId] && spaces[currentSpaceId].chats[currentChatId] && spaces[currentSpaceId].chats[currentChatId].messages ? (
+              {currentSpaceId &&
+                currentChatId &&
+                spaces[currentSpaceId] &&
+                spaces[currentSpaceId].chats[currentChatId] &&
+                spaces[currentSpaceId].chats[currentChatId].messages ? (
                 spaces[currentSpaceId].chats[currentChatId].messages.length === 0 ? (
                   <p className="text-gray-500">No messages in this chat</p>
                 ) : (
                   spaces[currentSpaceId].chats[currentChatId].messages.map((msg, index) => (
-                    <div key={index} className={`my-2 ${msg.role === 'user' ? 'text-right' : 'text-left flex items-center'}`}>
+                    <div
+                      key={index}
+                      className={`my-2 ${msg.role === 'user' ? 'text-right' : 'text-left flex items-center'
+                        }`}
+                    >
                       {msg.role === 'ai' && (
                         <Image
                           src={chatIcon} // Display the chat icon before the AI response
@@ -538,7 +728,10 @@ export default function ChatLayout() {
                           className="mr-2"
                         />
                       )}
-                      <p className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-[#08141F] text-white' : 'text-white'}`}>
+                      <p
+                        className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-[#08141F] text-white' : 'text-white'
+                          }`}
+                      >
                         {msg.content}
                       </p>
                     </div>

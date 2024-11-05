@@ -14,11 +14,9 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     const [isEditing, setIsEditing] = useState(false);
     const dropdownRef = useRef(null);
     const router = useRouter();
-
     const [documents, setDocuments] = useState([]);
     const [spaceUsers, setSpaceUsers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
-    const [isUserOverlayVisible, setUserOverlayVisible] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]); // Array to hold selected user IDs
 
     const handleLogout = async () => {
@@ -40,6 +38,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         }
         setIsEditing(false);
     };
+
 
     useEffect(() => {
         setNewSpaceName(spaceTitle);
@@ -263,7 +262,6 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
             console.error('Error fetching space users:', error);
         }
     };
-
 
 
 
