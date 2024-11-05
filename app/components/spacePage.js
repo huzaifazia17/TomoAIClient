@@ -59,19 +59,6 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         };
     }, []);
 
-    // Fetch all users from the database
-    const fetchAllUsers = async () => {
-        try {
-            const response = await fetch('http://localhost:3009/api/users');
-            if (!response.ok) {
-                throw new Error("Failed to fetch users");
-            }
-            const usersData = await response.json();
-            setAllUsers(usersData);
-        } catch (error) {
-            console.error("Error fetching users:", error);
-        }
-    };
 
     // Handle document upload
     const handleUploadDocument = (event) => {
@@ -87,10 +74,50 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         setDocuments(documents.filter((doc) => doc.id !== docId));
     };
 
-    // Handle user deletion from space
-    const handleDeleteUserFromSpace = (userId) => {
-        setSpaceUsers(spaceUsers.filter((user) => user.id !== userId));
+    /*     // Handle user deletion from the space and update the database
+        const handleDeleteUserFromSpace = async (userId) => {
+            try {
+                // Filter out the user to be deleted
+                const updatedUsers = spaceUsers.filter((user) => user.id !== userId);
+                setSpaceUsers(updatedUsers);
+    
+                // Make an API call to update the users array in the database
+                const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ users: updatedUsers.map((user) => user.id) })
+                });
+    
+                if (!response.ok) {
+                    throw new Error("Failed to delete user from the space");
+                }
+            } catch (error) {
+                console.error("Error deleting user from space:", error);
+            }
+        }; */
+
+    // Handle removing a user from the space
+    const handleRemoveUserFromSpace = async (userId) => {
+        try {
+            const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users/${userId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to remove user from the space');
+            }
+
+            // Update space users in the state
+            setSpaceUsers((prevUsers) => prevUsers.filter((id) => id !== userId));
+        } catch (error) {
+            console.error('Error removing user from space:', error);
+        }
     };
+
+    useEffect(() => {
+        fetchAllUsers();
+        fetchSpaceUsers();
+    }, [spaceId]);
 
     // Show overlay to add users
     const handleAddUser = () => {
@@ -98,26 +125,147 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         setUserOverlayVisible(true);
     };
 
-    // Toggle user selection in the overlay
+    // Function to handle adding a user to the space
+    const handleAddUserToSpace = async (userId) => {
+        if (!userId) {
+            console.log("No userId provided to add to space");
+            return;
+        }
+
+        try {
+            console.log("Adding user with firebaseUid:", userId);
+
+            // Making a PUT request to add the user to the space
+            const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId }), // Send the userId (firebaseUid) to the backend
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add user to the space');
+            }
+
+            // If successful, update the spaceUsers state
+            setSpaceUsers((prevUsers) => [...prevUsers, userId]);
+            console.log('User successfully added to the space:', userId);
+        } catch (error) {
+            console.error('Error adding user to space:', error);
+        }
+    };
+
+
+    // Function to toggle user selection
     const toggleUserSelection = (userId) => {
+        console.log('Toggling user selection for ID:', userId);
         setSelectedUsers((prevSelected) => {
             if (prevSelected.includes(userId)) {
+                // If the user is already selected, remove them
                 return prevSelected.filter((id) => id !== userId);
             } else {
+                // If the user is not selected, add them
                 return [...prevSelected, userId];
             }
         });
     };
 
-    // Add selected users to space
-    const handleAddSelectedUsers = () => {
-        const newUsers = allUsers.filter(
-            (user) => selectedUsers.includes(user.id) && !spaceUsers.some((u) => u.id === user.id)
-        );
-        setSpaceUsers([...spaceUsers, ...newUsers]);
-        setUserOverlayVisible(false); // Close overlay
-        setSelectedUsers([]); // Clear selected users
+
+    /*     // Add selected users to space
+        const handleAddSelectedUsers = async () => {
+            try {
+                // Ensure selectedUsers contains valid user IDs
+                const usersToAdd = allUsers
+                    .filter((user) => selectedUsers.includes(user.id))
+                    .map((user) => user.id);
+    
+                if (usersToAdd.length === 0) {
+                    console.warn('No valid users selected to add');
+                    return;
+                }
+    
+                console.log("Adding users to space:", usersToAdd);
+    
+                const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ users: usersToAdd }),
+                });
+    
+                if (!response.ok) {
+                    throw new Error('Failed to add users to the space');
+                }
+    
+                // Update space users in the state
+                const updatedUsers = allUsers.filter((user) => selectedUsers.includes(user.id));
+                setSpaceUsers((prevUsers) => [...prevUsers, ...updatedUsers]);
+                setUserOverlayVisible(false); // Close the overlay
+                setSelectedUsers([]); // Clear selected users
+            } catch (error) {
+                console.error('Error adding users to space:', error);
+            }
+        }; */
+
+
+    const fetchAllUsers = async () => {
+        try {
+            const response = await fetch('http://localhost:3009/api/users');
+            if (!response.ok) {
+                throw new Error('Failed to fetch users');
+            }
+            const usersData = await response.json();
+            console.log('Fetched all users:', usersData); // Log the users to check
+            setAllUsers(usersData);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
     };
+
+    // Fetch users for the current space when the component mounts or spaceId changes
+    useEffect(() => {
+        const fetchSpaceUsers = async () => {
+            try {
+                const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`);
+                if (!response.ok) {
+                    throw new Error("Failed to fetch space users");
+                }
+
+                const spaceData = await response.json();
+                if (!spaceData || !Array.isArray(spaceData.users)) {
+                    throw new Error("Invalid space data format");
+                }
+
+                // Update both spaceUsers and selectedUsers from the database
+                setSpaceUsers(spaceData.users);
+                setSelectedUsers(spaceData.users); // Sync checkboxes with saved users
+            } catch (error) {
+                console.error("Error fetching space users:", error);
+            }
+        };
+
+        if (spaceId) {
+            fetchSpaceUsers();
+        }
+    }, [spaceId]);
+
+
+    // Fetch users for the current space from the database
+    const fetchSpaceUsers = async () => {
+        try {
+            const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch space users');
+            }
+            const spaceData = await response.json();
+            setSpaceUsers(spaceData.users || []);
+        } catch (error) {
+            console.error('Error fetching space users:', error);
+        }
+    };
+
+
+
 
     return (
         <div className="flex flex-col h-full">
@@ -228,70 +376,74 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                     <table className="w-full text-white bg-transparent">
                         <thead>
                             <tr>
-                                <th className="text-left p-2">First Name</th>
-                                <th className="text-left p-2">Last Name</th>
+                                <th className="text-left p-2">Name</th>
                                 <th className="text-left p-2">Email</th>
-                                <th className="text-center p-2">Actions</th>
+                                <th className="text-left p-2">Add/Remove</th>
+
                             </tr>
                         </thead>
                         <tbody>
-                            {spaceUsers.map((user) => (
-                                <tr key={user.id}>
-                                    <td className="p-2">{user.firstName}</td>
-                                    <td className="p-2">{user.lastName}</td>
-                                    <td className="p-2">{user.email}</td>
-                                    <td className="p-2 text-center">
-                                        <button
-                                            onClick={() => handleDeleteUserFromSpace(user.id)}
-                                            className="bg-red-500 p-1 rounded"
-                                        >
-                                            <FontAwesomeIcon icon={faTrash} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {allUsers.map((user, index) => {
+                                return (
+                                    <tr key={user.firebaseUid || index}>
+                                        <td className="border px-4 py-2">{user.firstName} {user.lastName}</td>
+                                        <td className="border px-4 py-2">{user.email}</td>
+                                        <td className="border px-4 py-2 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUsers.includes(user.firebaseUid)} // Check if the user is in selectedUsers
+                                                onChange={async (e) => {
+                                                    const userId = user.firebaseUid;
+                                                    console.log('User ID:', userId, 'Checked:', e.target.checked); // Log the user ID and checkbox status
+
+                                                    if (e.target.checked) {
+                                                        // Add the user ID to selectedUsers if checked
+                                                        setSelectedUsers((prevSelected) => {
+                                                            const updated = [...prevSelected, userId];
+                                                            console.log('Updated selected users:', updated); // Log the updated selected users
+                                                            return updated;
+                                                        });
+
+                                                        // Update the database with the new user
+                                                        await handleAddUserToSpace(userId);
+                                                    } else {
+                                                        // Remove the user ID from selectedUsers if unchecked
+                                                        setSelectedUsers((prevSelected) => {
+                                                            const updated = prevSelected.filter((id) => id !== userId);
+                                                            console.log('Updated selected users:', updated); // Log the updated selected users
+                                                            return updated;
+                                                        });
+
+                                                        // Call handleRemoveUserFromSpace to remove the user from the database
+                                                        handleRemoveUserFromSpace(userId);
+                                                    }
+                                                }}
+                                            />
+                                            {/*     <button
+                    onClick={() => handleRemoveUserFromSpace(user.firebaseUid)}
+                    className="ml-2 text-red-500"
+                >
+                    <FontAwesomeIcon icon={faTrash} />
+                </button> */}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+
+
+
+
                         </tbody>
                     </table>
-                    <div className="absolute top-4 right-4">
+                    {/*                     <div className="absolute top-4 right-4">
                         <button onClick={handleAddUser} className="text-green-500 text-2xl">
                             <FontAwesomeIcon icon={faPlus} />
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
-            {/* User Selection Overlay */}
-            {isUserOverlayVisible && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center">
-                    <div className="bg-gray-800 p-6 rounded-lg w-1/2">
-                        <h2 className="text-white text-center text-xl mb-4">Add Users to Space</h2>
-                        <ul className="text-white space-y-2 max-h-80 overflow-y-auto">
-                            {allUsers.map((user) => (
-                                <li key={user.id} className="flex items-center justify-between p-2 bg-gray-700 rounded">
-                                    <span>{user.firstName} {user.lastName} ({user.email})</span>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedUsers.includes(user.id)}
-                                        onChange={() => toggleUserSelection(user.id)}
-                                    />
-                                </li>
-                            ))}
-                        </ul>
-                        <button
-                            onClick={handleAddSelectedUsers}
-                            className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
-                        >
-                            Add Selected
-                        </button>
-                        <button
-                            onClick={() => setUserOverlayVisible(false)}
-                            className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 }

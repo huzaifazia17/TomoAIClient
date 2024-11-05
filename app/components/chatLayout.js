@@ -38,25 +38,10 @@ export default function ChatLayout() {
   const router = useRouter();
   const [userRole, setUserRole] = useState(null);
   const [userFirebaseUid, setUserFirebaseUid] = useState(null);
+
   // Initialize a variable to track the highest space number
   let highestSpaceNumber = 0;
-  /*   useEffect(() => {
-      // Fetch user role on component mount
-      const fetchUserRole = async () => {
-        try {
-          const user = auth.currentUser;
-          if (user) {
-            const response = await fetch(`/api/users/${user.uid}`);
-            const data = await response.json();
-            setUserRole(data.role);
-          }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
-        }
-      };
-  
-      fetchUserRole();
-    }, []); */
+
   // Get the current user's firebaseUid
   useEffect(() => {
     const fetchFirebaseUid = () => {
@@ -133,41 +118,82 @@ export default function ChatLayout() {
     }
   };
 
-  // Fetch spaces from the database on component mount
   useEffect(() => {
     const fetchSpacesFromDatabase = async () => {
       try {
         const firebaseUid = auth.currentUser?.uid;
         if (!firebaseUid) {
-          console.error('No user is logged in.');
+          console.error("No user is logged in.");
           return;
         }
 
+        // Create a unique space ID for the Personal Assistant space
+        const PERSONAL_ASSISTANT_SPACE_ID = `personal-assistant-space-${firebaseUid}`;
+
+        // Fetch all spaces for the current user
         const response = await fetch(`http://localhost:3009/api/spaces?firebaseUid=${firebaseUid}`);
-        if (!response.ok) throw new Error('Failed to fetch spaces');
+        if (!response.ok) throw new Error("Failed to fetch spaces");
 
-        const { spaces: spacesData } = await response.json(); // Destructure to get the spaces array
-        console.log('Fetched spaces data:', spacesData);
+        const { spaces: spacesData } = await response.json();
+        console.log("Fetched spaces data:", spacesData);
 
-        // Ensure spacesData is an array
         if (!Array.isArray(spacesData)) {
-          throw new Error('Invalid data format: Expected an array of spaces');
+          throw new Error("Invalid data format: Expected an array of spaces");
         }
 
         // Transform spacesData into the format used in the state
-        const spacesObj = spacesData.reduce((acc, space) => {
+        let spacesObj = spacesData.reduce((acc, space) => {
           acc[space.spaceId] = { title: space.spaceName, chats: {} };
           return acc;
         }, {});
 
+        // Check if the "Personal Assistant" space exists using the unique space ID
+        if (!spacesObj[PERSONAL_ASSISTANT_SPACE_ID]) {
+          // If the "Personal Assistant" space does not exist, create it
+          const defaultSpace = {
+            firebaseUid,
+            spaceId: PERSONAL_ASSISTANT_SPACE_ID,
+            spaceName: "Personal Assistant",
+            users: [firebaseUid],
+          };
+
+          // Add the default space to the database
+          const createResponse = await fetch("http://localhost:3009/api/spaces", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(defaultSpace),
+          });
+
+          if (!createResponse.ok) {
+            throw new Error("Failed to create default space");
+          }
+
+          // Add the newly created default space to the state
+          spacesObj[PERSONAL_ASSISTANT_SPACE_ID] = {
+            title: "Personal Assistant",
+            chats: {
+              "chat-tomo": { title: "Tomo", messages: [] },
+            },
+          };
+        } else {
+          // Ensure the existing "Personal Assistant" space has the "Tomo" chat
+          if (!spacesObj[PERSONAL_ASSISTANT_SPACE_ID].chats["chat-tomo"]) {
+            spacesObj[PERSONAL_ASSISTANT_SPACE_ID].chats["chat-tomo"] = { title: "Tomo", messages: [] };
+          }
+        }
+
+        // Update the spaces state after all checks and transformations
         setSpaces(spacesObj);
       } catch (error) {
-        console.error('Error fetching spaces:', error);
+        console.error("Error fetching spaces:", error);
       }
     };
 
     fetchSpacesFromDatabase();
   }, []);
+
+
+
 
 
 
