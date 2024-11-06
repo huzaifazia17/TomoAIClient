@@ -8,6 +8,8 @@ import { faUser, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 
+
+
 export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, handleDeleteSpace }) {
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [newSpaceName, setNewSpaceName] = useState(spaceTitle);
@@ -44,6 +46,24 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         setNewSpaceName(spaceTitle);
     }, [spaceTitle]);
 
+    // Fetch documents from the database when the component mounts
+    useEffect(() => {
+        const fetchDocuments = async () => {
+            try {
+                const response = await fetch(`http://localhost:3009/api/documents?spaceId=${spaceId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch documents');
+                }
+
+                const data = await response.json();
+                setDocuments(data.documents);
+            } catch (error) {
+                console.error('Error fetching documents:', error);
+            }
+        };
+
+        fetchDocuments();
+    }, [spaceId]);
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -58,42 +78,73 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         };
     }, []);
 
-
     // Handle document upload
-    const handleUploadDocument = (event) => {
-        const file = event.target.files[0];
-        if (file && file.type === 'application/pdf') {
-            const newDoc = { id: Date.now(), name: file.name, file };
-            setDocuments((prevDocs) => [...prevDocs, newDoc]);
+    const handleUploadDocument = async (event) => {
+        try {
+            const file = event.target.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                alert('Please select a valid PDF file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pdf', file);
+            formData.append('spaceId', spaceId); // Add the spaceId
+            formData.append('title', file.name); // Add the document title
+
+            const response = await fetch('http://localhost:3009/api/upload-pdf', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload and process PDF');
+            }
+
+            // Parse the response to get the newly created document
+            const newDocument = await response.json();
+            console.log('New document received from server:', newDocument);
+
+            // Check if the newDocument has all required fields
+            if (!newDocument || !newDocument.title || !newDocument.spaceId || !newDocument._id) {
+                console.error('Incomplete document data received:', newDocument);
+                throw new Error('Document data is incomplete');
+            }
+
+            // Update the documents state to reflect the new document
+            setDocuments((prevDocuments) => [...prevDocuments, newDocument]);
+            alert('PDF uploaded and processed successfully');
+        } catch (error) {
+            console.error('Error uploading document:', error);
+            alert('Error uploading document');
         }
     };
 
-    // Handle document deletion
-    const handleDeleteDocument = (docId) => {
-        setDocuments(documents.filter((doc) => doc.id !== docId));
-    };
 
-    /*     // Handle user deletion from the space and update the database
-        const handleDeleteUserFromSpace = async (userId) => {
-            try {
-                // Filter out the user to be deleted
-                const updatedUsers = spaceUsers.filter((user) => user.id !== userId);
-                setSpaceUsers(updatedUsers);
-    
-                // Make an API call to update the users array in the database
-                const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ users: updatedUsers.map((user) => user.id) })
-                });
-    
-                if (!response.ok) {
-                    throw new Error("Failed to delete user from the space");
-                }
-            } catch (error) {
-                console.error("Error deleting user from space:", error);
+
+
+
+
+
+    // Function to handle document deletion
+    const handleDeleteDocument = async (documentId) => {
+        try {
+            const response = await fetch(`http://localhost:3009/api/documents/${documentId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete document');
             }
-        }; */
+
+            // Remove the deleted document from the state
+            setDocuments((prevDocuments) => prevDocuments.filter((doc) => doc._id !== documentId));
+            alert('Document deleted successfully');
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            alert('Error deleting document');
+        }
+    };
 
     // Handle removing a user from the space
     const handleRemoveUserFromSpace = async (userId) => {
@@ -339,11 +390,11 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                         </thead>
                         <tbody>
                             {documents.map((doc) => (
-                                <tr key={doc.id}>
-                                    <td className="p-2">{doc.name}</td>
+                                <tr key={doc._id}>
+                                    <td className="p-2">{doc.title}</td>
                                     <td className="p-2 text-center">
                                         <button
-                                            onClick={() => handleDeleteDocument(doc.id)}
+                                            onClick={() => handleDeleteDocument(doc._id)}
                                             className="bg-red-500 p-1 rounded"
                                         >
                                             <FontAwesomeIcon icon={faTrash} />
