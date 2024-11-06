@@ -4,11 +4,10 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons'; // Import the up-arrow icon
 
-export default function ChatPage({ currentChatId, chats, updateChatMessages }) {
+export default function ChatPage({ currentSpaceId, currentChatId, updateChatMessages }) {
   const [prompt, setPrompt] = useState(''); // User's input prompt
   const [loading, setLoading] = useState(false); // Track loading state
   const [error, setError] = useState(''); // Track error state
-
   // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,8 +20,11 @@ export default function ChatPage({ currentChatId, chats, updateChatMessages }) {
     updateChatMessages(currentChatId, userMessage); // Append user's message
 
     try {
-      // Send the user's prompt to the backend
-      const res = await axios.post('http://localhost:3009/api/chat', { prompt });
+      // Send the user's prompt and spaceId to the backend
+      const res = await axios.post('http://localhost:3009/api/chat', {
+        prompt,
+        spaceId: currentSpaceId // Assuming currentSpaceId is available in the component's state
+      });
 
       // Add AI response to the conversation
       const aiResponse = { role: 'ai', content: res.data.message };
@@ -37,6 +39,7 @@ export default function ChatPage({ currentChatId, chats, updateChatMessages }) {
       setLoading(false); // Stop loading
     }
   };
+
 
   // Function to handle Enter keypress
   const handleKeyDown = (e) => {

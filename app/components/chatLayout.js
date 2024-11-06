@@ -745,6 +745,7 @@ export default function ChatLayout() {
             {/* Message Input */}
             <div className="mt-4 flex justify-center">
               <ChatPage
+                currentSpaceId={currentSpaceId}
                 currentChatId={currentChatId}
                 // Check to prevent accessing undefined `chats`
                 chats={currentSpaceId && spaces[currentSpaceId] ? spaces[currentSpaceId].chats : {}}
