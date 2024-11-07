@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp } from '@fortawesome/free-solid-svg-icons'; // Import the up-arrow icon
+import { faArrowUp } from '@fortawesome/free-solid-svg-icons';
 
 export default function ChatPage({ currentSpaceId, currentChatId, updateChatMessages }) {
   const [prompt, setPrompt] = useState(''); // User's input prompt
   const [loading, setLoading] = useState(false); // Track loading state
   const [error, setError] = useState(''); // Track error state
+
   // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +24,7 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
       // Send the user's prompt and spaceId to the backend
       const res = await axios.post('http://localhost:3009/api/chat', {
         prompt,
-        spaceId: currentSpaceId // Assuming currentSpaceId is available in the component's state
+        spaceId: currentSpaceId
       });
 
       // Add AI response to the conversation

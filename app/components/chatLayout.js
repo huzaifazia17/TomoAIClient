@@ -12,18 +12,10 @@ import chatIcon from '../resources/chatIcon.png';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 import SpacePage from './spacePage';
 
-// Helper functions for local storage
-const getSpacesFromLocalStorage = () => {
-  const spaces = localStorage.getItem('tomoai-spaces');
-  return spaces ? JSON.parse(spaces) : {};
-};
 
 const saveSpacesToLocalStorage = (spaces) => {
   localStorage.setItem('tomoai-spaces', JSON.stringify(spaces));
 };
-
-// Function to generate a random space ID
-const generateSpaceId = () => `space-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 export default function ChatLayout() {
   const [spaces, setSpaces] = useState({});
@@ -85,14 +77,14 @@ export default function ChatLayout() {
     }
   };
 
-  // Add this function above your return statement
+
   const handleEditSpaceName = (spaceId) => {
     setEditingSpaceId(spaceId);
     setNewSpaceName(spaces[spaceId].title);
   };
+
   const handleDeleteSpace = async (spaceId) => {
     try {
-      // Make sure the URL points to the correct backend port
       const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -194,11 +186,6 @@ export default function ChatLayout() {
   }, []);
 
 
-
-
-
-
-
   // Save spaces to localStorage whenever they are updated
   useEffect(() => {
     saveSpacesToLocalStorage(spaces);
@@ -210,7 +197,6 @@ export default function ChatLayout() {
     const chatName = `New Chat ${Object.keys(spaces[spaceId].chats).length + 1}`;
 
     try {
-      // Make a POST request to create the chat in the database
       const response = await fetch('http://localhost:3009/api/chats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -263,7 +249,6 @@ export default function ChatLayout() {
 
   const handleDeleteChat = async (spaceId, chatId) => {
     try {
-      // Make a DELETE request to remove the chat from the database
       const response = await fetch(`http://localhost:3009/api/chats/${chatId}`, {
         method: 'DELETE',
       });
@@ -372,7 +357,6 @@ export default function ChatLayout() {
       setSpaces(updatedSpaces);
       setEditingChatId(null); // Stop editing
 
-      // Make an API call to update the chat name in the database
       const response = await fetch(`http://localhost:3009/api/chats/${chatId}`, {
         method: 'PUT',
         headers: {
@@ -447,9 +431,6 @@ export default function ChatLayout() {
   };
 
 
-
-
-
   // Function to save the space name in the database
   const handleSaveSpaceName = async (spaceId, newName) => {
     try {
@@ -494,8 +475,6 @@ export default function ChatLayout() {
     };
   }, []);
 
-  // Check if the user is not authorized to create or view spaces
-  const isAuthorized = userRole === 'ta' || userRole === 'professor';
 
   return (
     <div className="flex h-screen" style={{ backgroundColor: '#091720' }}>
@@ -504,10 +483,9 @@ export default function ChatLayout() {
         {/* Top section for logo */}
         <div className="flex justify-center mb-4">
           <Image
-            src={logo} // Your logo image
-            alt="TomoAI Logo"
-            width={100} // Adjust as necessary
-            height={40} // Adjust as necessary
+            src={logo}
+            width={100}
+            height={40}
             className="object-contain"
           />
         </div>
@@ -660,10 +638,6 @@ export default function ChatLayout() {
                 </p>
               </div>
             </div>
-
-
-
-
           )
         ) : currentChatId ? (
           <>
