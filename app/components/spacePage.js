@@ -101,24 +101,43 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                 throw new Error('Failed to upload and process PDF');
             }
 
-            // Parse the response to get the newly created document
+            // Parse the response to get the newly created document metadata
             const newDocument = await response.json();
             console.log('New document received from server:', newDocument);
 
             // Check if the newDocument has all required fields
-            if (!newDocument || !newDocument.title || !newDocument.spaceId || !newDocument._id) {
+            if (
+                !newDocument ||
+                !newDocument.title ||
+                !newDocument.spaceId ||
+                !newDocument.documentId
+            ) {
                 console.error('Incomplete document data received:', newDocument);
                 throw new Error('Document data is incomplete');
             }
 
-            // Update the documents state to reflect the new document
-            setDocuments((prevDocuments) => [...prevDocuments, newDocument]);
-            alert('PDF uploaded and processed successfully');
+            // Prevent duplicate documents in state
+            setDocuments((prevDocuments) => {
+                const exists = prevDocuments.some(doc => doc.documentId === newDocument.documentId);
+                if (!exists) {
+                    return [...prevDocuments, {
+                        _id: newDocument.documentId,
+                        title: newDocument.title,
+                        spaceId: newDocument.spaceId,
+                        chunksSaved: newDocument.chunksSaved,
+                        content: newDocument.content,
+                    }];
+                }
+                return prevDocuments;
+            });
+
+            alert(`PDF uploaded and processed successfully with ${newDocument.chunksSaved} chunks`);
         } catch (error) {
             console.error('Error uploading document:', error);
             alert('Error uploading document');
         }
     };
+
 
 
 
