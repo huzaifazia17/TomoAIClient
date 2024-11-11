@@ -11,6 +11,7 @@ import logo from '../resources/logo.png';
 import chatIcon from '../resources/chatIcon.png';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 import SpacePage from './spacePage';
+import StudentSpaceManagement from './StudentSpaceManagement';
 
 
 const saveSpacesToLocalStorage = (spaces) => {
@@ -595,49 +596,13 @@ export default function ChatLayout() {
               handleDeleteSpace={handleDeleteSpace}
             />
           ) : (
-            // Show a message if the user is a 'student' and not authorized
-            <div className="bg-transparent p-4 flex flex-col h-full">
-              <div className="flex justify-between items-center">
-                <Image
-                  src={whiteLogoOnly}
-                  alt="TomoAI Logo"
-                  width={100}
-                  height={40}
-                  className="object-contain"
-                />
-
-                <div className="relative" ref={dropdownRef}>
-                  <FontAwesomeIcon
-                    icon={faUser}
-                    className="text-white cursor-pointer"
-                    size="lg"
-                    onClick={() => setDropdownVisible(!dropdownVisible)}
-                  />
-                  {dropdownVisible && (
-                    <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-lg z-10">
-                      <ul className="py-1">
-                        <li className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
-                          <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
-                        </li>
-                        <hr className="border-t border-gray-600 my-1" />
-                        <li
-                          onClick={handleLogout}
-                          className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center"
-                        >
-                          <FontAwesomeIcon icon={faTrash} className="mr-2" /> Logout
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-grow items-center justify-center">
-                <p className="text-gray-500 text-center">
-                  Only Professors or TA's have access to Space Management
-                </p>
-              </div>
-            </div>
+            // Render StudentSpaceManagement component if the user is a 'student'
+            <StudentSpaceManagement
+              currentSpaceId={currentSpaceId}
+              userRole={userRole}
+              handleLogout={handleLogout}
+              whiteLogoOnly={whiteLogoOnly}
+            />
           )
         ) : currentChatId ? (
           <>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faTrash, faPlus, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 
@@ -241,41 +241,6 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     };
 
 
-    /*     // Add selected users to space
-        const handleAddSelectedUsers = async () => {
-            try {
-                // Ensure selectedUsers contains valid user IDs
-                const usersToAdd = allUsers
-                    .filter((user) => selectedUsers.includes(user.id))
-                    .map((user) => user.id);
-    
-                if (usersToAdd.length === 0) {
-                    console.warn('No valid users selected to add');
-                    return;
-                }
-    
-                console.log("Adding users to space:", usersToAdd);
-    
-                const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ users: usersToAdd }),
-                });
-    
-                if (!response.ok) {
-                    throw new Error('Failed to add users to the space');
-                }
-    
-                // Update space users in the state
-                const updatedUsers = allUsers.filter((user) => selectedUsers.includes(user.id));
-                setSpaceUsers((prevUsers) => [...prevUsers, ...updatedUsers]);
-                setUserOverlayVisible(false); // Close the overlay
-                setSelectedUsers([]); // Clear selected users
-            } catch (error) {
-                console.error('Error adding users to space:', error);
-            }
-        }; */
-
 
     const fetchAllUsers = async () => {
         try {
@@ -330,6 +295,29 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
             setSpaceUsers(spaceData.users || []);
         } catch (error) {
             console.error('Error fetching space users:', error);
+        }
+    };
+
+    const handleToggleVisibility = async (documentId, newVisibility) => {
+        try {
+            const response = await fetch(`http://localhost:3009/api/documents/${documentId}/visibility`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ visibility: newVisibility }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update document visibility');
+            }
+
+            const updatedDocument = await response.json();
+            setDocuments((prevDocuments) =>
+                prevDocuments.map((doc) =>
+                    doc._id === documentId ? { ...doc, visibility: updatedDocument.visibility } : doc
+                )
+            );
+        } catch (error) {
+            console.error('Error updating document visibility:', error);
         }
     };
 
@@ -405,12 +393,22 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                             <tr>
                                 <th className="text-left p-2">Document Name</th>
                                 <th className="text-center p-2">Actions</th>
+                                <th className="text-center p-2 relative flex items-center justify-center">
+                                    Visibility
+                                    <span className="ml-1 relative group">
+                                        <FontAwesomeIcon icon={faQuestionCircle} className="text-gray-400 text-xs cursor-pointer" />
+                                        <span className="absolute bottom-full mb-2 hidden group-hover:flex bg-black opacity-100 text-white text-xs rounded-lg px-2 py-1 w-48 text-center shadow-lg z-50">
+
+                                            Check the box for visibility if you wish for the students to see the document has been uploaded to this space
+                                        </span>
+                                    </span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {documents.map((doc) => (
-                                <tr key={doc._id}>
-                                    <td className="p-2">{doc.title}</td>
+                                <tr key={doc._id} className="text-center">
+                                    <td className="p-2 text-left">{doc.title}</td>
                                     <td className="p-2 text-center">
                                         <button
                                             onClick={() => handleDeleteDocument(doc._id)}
@@ -418,6 +416,14 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                                         >
                                             <FontAwesomeIcon icon={faTrash} />
                                         </button>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={doc.visibility}
+                                            onChange={() => handleToggleVisibility(doc._id, !doc.visibility)}
+                                            className="form-checkbox"
+                                        />
                                     </td>
                                 </tr>
                             ))}
@@ -436,6 +442,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                         />
                     </div>
                 </div>
+
 
                 <div className="w-px bg-gray-500 mx-4"></div>
 
