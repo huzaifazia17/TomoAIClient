@@ -33,7 +33,7 @@ const SignUp = () => {
       });
 
       // Save user details to MongoDB, including Firebase UID
-      await axios.post('http://localhost:3001/api/users', {  // Pointing to Express backend
+      await axios.post('http://localhost:3009/api/users', {  // Pointing to Express backend
         firebaseUid: user.uid, 
         firstName,
         lastName,
