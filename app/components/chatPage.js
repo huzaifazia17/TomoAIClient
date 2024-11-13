@@ -9,7 +9,7 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
   const [loading, setLoading] = useState(false); // Track loading state
   const [error, setError] = useState(''); // Track error state
 
-  // Function to handle form submission
+  /* // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!prompt.trim()) return;  // Prevent sending empty messages
@@ -38,6 +38,45 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
       setError('Failed to get a response from the AI.');
     } finally {
       setLoading(false); // Stop loading
+    }
+  }; */
+  const renderMessage = (message) => {
+    return (
+      <div className={`message ${message.role}`}>
+        <p>{message.content}</p>
+        {message.imageUrl && <img src={message.imageUrl} alt="Generated content" />}
+      </div>
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setError('');
+
+    const userMessage = { role: 'user', content: prompt };
+    updateChatMessages(currentChatId, userMessage);
+
+    try {
+      const res = await axios.post('http://localhost:3009/api/chat', {
+        prompt,
+        spaceId: currentSpaceId
+      });
+
+      // Check if response has an image URL
+      const aiResponse = { role: 'ai', content: res.data.message };
+      if (res.data.imageUrl) {
+        aiResponse.imageUrl = res.data.imageUrl;  // Add image URL if available
+      }
+      updateChatMessages(currentChatId, aiResponse);
+      setPrompt('');
+
+    } catch (err) {
+      console.error("Error in request:", err);
+      setError('Failed to get a response from the AI.');
+    } finally {
+      setLoading(false);
     }
   };
 
