@@ -392,7 +392,6 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                         <thead>
                             <tr>
                                 <th className="text-left p-2">Document Name</th>
-                                <th className="text-center p-2">Actions</th>
                                 <th className="text-center p-2 relative flex items-center justify-center">
                                     Visibility
                                     <span className="ml-1 relative group">
@@ -403,20 +402,14 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                                         </span>
                                     </span>
                                 </th>
+                                <th className="text-center p-2">Action</th>
+
                             </tr>
                         </thead>
                         <tbody>
                             {documents.map((doc) => (
                                 <tr key={doc._id} className="text-center">
                                     <td className="p-2 text-left">{doc.title}</td>
-                                    <td className="p-2 text-center">
-                                        <button
-                                            onClick={() => handleDeleteDocument(doc._id)}
-                                            className="bg-red-500 p-1 rounded"
-                                        >
-                                            <FontAwesomeIcon icon={faTrash} />
-                                        </button>
-                                    </td>
                                     <td className="p-2 text-center">
                                         <input
                                             type="checkbox"
@@ -425,6 +418,15 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                                             className="form-checkbox"
                                         />
                                     </td>
+                                    <td className="p-2 text-center">
+                                        <button
+                                            onClick={() => handleDeleteDocument(doc._id)}
+                                            className="bg-red-500 p-1 rounded"
+                                        >
+                                            <FontAwesomeIcon icon={faTrash} />
+                                        </button>
+                                    </td>
+
                                 </tr>
                             ))}
                         </tbody>
