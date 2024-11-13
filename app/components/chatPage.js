@@ -113,8 +113,8 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
   // Function to handle Enter keypress
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();  // Prevent new line from being added
-      handleSubmit(e);      // Submit the form on Enter
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
@@ -128,20 +128,39 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
       )}
 
       {/* Container for Sample Questions and Message Input Box */}
-      <div className="flex flex-col items-center w-full mt-2 space-y-2">
+      <div className="flex flex-col items-center w-full mt-2 space-y-2 ">
         {/* Sample Questions Section */}
-        <div className="w-4/5 flex flex-wrap justify-start space-x-2 space-y-1 text-xs text-gray-300">
+        <div className="mx-4 w-4/5 flex justify-center gap-4">
           {sampleQuestions.map((question, index) => (
             <button
               key={index}
               onClick={() => setPrompt(question)}
-              className="px-2 py-1 bg-gray-700 rounded-full text-left hover:bg-gray-600 focus:outline-none transition-all"
-              style={{ flex: '1 1 30%', minWidth: '150px', fontSize: '0.75rem' }} // Smaller font size
+              className="px-2 py-1 rounded-full text-center text-gray-200 hover:bg-gray-600 focus:outline-none transition-all"
+              style={{
+                backgroundColor: '#1a1e2e',
+                fontSize: '0.75rem',
+                color: '#e0e0e0',
+                boxShadow: '0px 0px 8px rgba(13, 77, 133, 0.8)',
+                border: 'none',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                //comment out if i want questions to wrap
+                //whiteSpace: 'nowrap',
+                margin: '0 8px', // Adds horizontal margin 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'; // Slight zoom on hover
+                e.currentTarget.style.boxShadow = '0px 0px 12px rgba(13, 77, 133, 1)'; // Stronger shadow on hover
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0px 0px 8px rgba(13, 77, 133, 0.8)'; // Reset shadow
+              }}
             >
               {question}
             </button>
           ))}
         </div>
+
 
         {/* Message Input Form */}
         <form onSubmit={handleSubmit} className="w-4/5">
