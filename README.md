@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Tomo AI: Client Repository
 
-## Getting Started
+Tomo AI is a **Generative AI-based Prompt Web Application** designed to enhance effective learning in education. By leveraging the OpenAI API and Langchain, Tomo AI provides students and professors with an efficient platform for course-specific information retrieval and management.
 
-First, run the development server:
+---
 
+### 🔗 Server Repository
+Find the server repository [here](https://github.com/huzaifazia17/TomoAIServer).
+
+---
+
+## 🚀 Features
+### 1. **User Authentication**
+- Seamless authentication powered by **Firebase**.
+
+### 2. **Custom User Interface**
+- Tailored features and UI for:
+  - **Professors**: Manage spaces and documents.
+  - **Students**: Access course-specific content and ask AI-powered questions.
+
+### 3. **Space (Course) Management Dashboard**
+Professors can:
+- **Add/Remove Students**: Manage class rosters effortlessly.
+- **Add/Remove Documents**: Upload or remove course materials students can query.
+- **Toggle Document Visibility**: Control which documents are accessible to students.
+
+### 4. **Accurate AI Responses**
+- Enhanced by **OpenAI API** and **Langchain**, the system provides context-aware responses to document-based and general queries with precision.
+
+---
+
+## 🎥 Demonstration Video
+Check out the video showcasing Tomo AI’s functionalities in the [video directory](./video).
+
+---
+
+## 🛠️ Getting Started
+
+### 1. Clone the Repositories
+Start by cloning both the **Client** and **Server** repositories:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+git clone https://github.com/huzaifazia17/TomoAIClient.git
+git clone https://github.com/huzaifazia17/TomoAIServer.git
