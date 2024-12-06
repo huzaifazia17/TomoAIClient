@@ -1,11 +1,23 @@
 # Tomo AI: Client Repository
 
 Tomo AI is a **Generative AI-based Prompt Web Application** designed to enhance effective learning in education. By leveraging the OpenAI API and Langchain, Tomo AI provides students and professors with an efficient platform for course-specific information retrieval and management.
-
+Tomo AI tackles the challenge of having a 
 ---
 
 ### 🔗 Server Repository
 Find the server repository [here](https://github.com/huzaifazia17/TomoAIServer).
+
+---
+
+## Challenges Tomo AI Tackles
+
+Tomo AI is designed to address common challenges in education:
+
+- **Document Security**: Ensures that only authorized users (e.g., professors or students) can access sensitive course materials.
+- **Efficient Student Management**: Professors can easily add/remove students from their courses, streamlining administrative tasks.
+- **Slide Content Retrieval**: Students often struggle to find specific information in lecture slides. Tomo AI provides precise answers from uploaded documents, saving time.
+- **Customizable Document Visibility**: Professors can manage which documents are visible to students, tailoring the learning experience.
+- **Reduced Professor/TA Workload**: By automating responses to common questions, Tomo AI frees up educators' time for more critical tasks.
 
 ---
 
@@ -30,7 +42,7 @@ Professors can:
 ---
 
 ## 🎥 Demonstration Video
-Watch the demo video directly here:
+A short demonstration of the main features of Tomo AI has been recorded and is available to watch here:
 
 [![Watch the Demo Video](https://img.youtube.com/vi/1Q8X6lE_hno/0.jpg)](https://youtu.be/1Q8X6lE_hno)
 
