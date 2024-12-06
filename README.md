@@ -30,7 +30,9 @@ Professors can:
 ---
 
 ## 🎥 Demonstration Video
-Check out the video showcasing Tomo AI’s functionalities in the [video directory](./video).
+Watch the demo video directly here:
+
+[![Watch the Demo Video](https://img.youtube.com/vi/1Q8X6lE_hno/0.jpg)](https://youtu.be/1Q8X6lE_hno)
 
 ---
 
