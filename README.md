@@ -41,9 +41,40 @@ Start by cloning both the **Client** and **Server** repositories:
 ```bash
 git clone https://github.com/huzaifazia17/TomoAIClient.git
 git clone https://github.com/huzaifazia17/TomoAIServer.git
+```
 
-### 1. Clone the Repositories
-Start by cloning both the **Client** and **Server** repositories:
+### 2. Set up the Environment Files
+In the **Client** folder, create a .env file and add the following: 
 ```bash
-git clone https://github.com/huzaifazia17/TomoAIClient.git
-git clone https://github.com/huzaifazia17/TomoAIServer.git
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_id=your_firebase_measurement_id
+NEXT_PUBLIC_OPENAI_API_KEY=your_openai_api_key
+```
+In the **Server** folder, create a .env file and add the following: 
+```bash
+MONGO_URI=your_mongodb_uri
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 3. Install Dependencies
+Run the following command in bothe the **Client** and **Server** folder:
+```bash
+npm install
+```
+
+### 4. Run the Application
+**Server**:
+Navigate to the server directory and run:
+```bash
+node server.js
+```
+**Client**:
+Navigate to the client directory and run:
+```bash
+npm run dev
+```
