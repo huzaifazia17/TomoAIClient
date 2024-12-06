@@ -41,3 +41,9 @@ Start by cloning both the **Client** and **Server** repositories:
 ```bash
 git clone https://github.com/huzaifazia17/TomoAIClient.git
 git clone https://github.com/huzaifazia17/TomoAIServer.git
+
+### 1. Clone the Repositories
+Start by cloning both the **Client** and **Server** repositories:
+```bash
+git clone https://github.com/huzaifazia17/TomoAIClient.git
+git clone https://github.com/huzaifazia17/TomoAIServer.git
