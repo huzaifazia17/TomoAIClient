@@ -1,7 +1,7 @@
 # Tomo AI: Client Repository
 
 Tomo AI is a **Generative AI-based Prompt Web Application** designed to enhance effective learning in education. By leveraging the OpenAI API and Langchain, Tomo AI provides students and professors with an efficient platform for course-specific information retrieval and management.
-Tomo AI tackles the challenge of having a 
+
 ---
 
 ### 🔗 Server Repository
