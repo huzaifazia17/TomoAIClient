@@ -12,6 +12,11 @@ import chatIcon from '../resources/chatIcon.png';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 import SpacePage from './spacePage';
 import StudentSpaceManagement from './StudentSpaceManagement';
+import { InlineMath, BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
+import { MathJax } from 'better-react-mathjax';
+
+
 
 
 const saveSpacesToLocalStorage = (spaces) => {
@@ -477,6 +482,415 @@ export default function ChatLayout() {
   }, []);
 
 
+  //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+  const MessageFormatter = ({ content }) => {
+    const { response } = content;
+    const responseLines = response.split("\n");
+  
+    const renderInlineCode = (line, index) => (
+      <span key={index} className="bg-gray-800 text-white px-1 py-0.5 rounded">
+        {line.slice(1, line.length - 1)} 
+      </span>
+    );
+  
+    const renderHeading = (line, index) => (
+      <div key={index} className={`text-xl font-semibold text-gray-100 mt-8 mb-4`}>
+        {line.replace(/\*\*/g, '')}
+      </div>
+    );
+  
+    const processCodeBlock = (code, language) => {
+      const lines = code.split('\n').filter(line => line.trim());
+      return (
+        <div className="relative my-8">
+          {language && (
+            <div className="absolute right-2 top-2 px-2 py-1 text-xs text-gray-400 bg-gray-900 rounded">
+              {language}
+            </div>
+          )}
+          <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto">
+            <code className="text-sm text-gray-200 font-mono" style={{ whiteSpace: 'pre' }}>
+              {lines.join('\n')}
+            </code>
+          </pre>
+        </div>
+      );
+    };
+  
+    const renderTextStyle = (line, index, style) => (
+      <div key={index} className="text-base text-gray-300 mb-8">
+        {line.split(style).map((part, idx) =>
+          idx % 2 === 1 ? (style === '**' ? <b key={idx}>{part}</b> : <i key={idx}>{part}</i>) : part
+        )}
+      </div>
+    );
+  
+    const renderList = (line, index) => (
+      <ul key={index} className="list-disc pl-8 mt-6 space-y-4">
+        <li className="text-base text-gray-300">{line.trim().substring(2).trim()}</li>
+      </ul>
+    );
+  
+    const renderMathAsText = (line, index) => {
+      if (line.startsWith("\\[")) {
+        return (
+          <div key={index} className="text-gray-200 text-lg mb-6">
+            {line.slice(2, line.length - 2)} 
+          </div>
+        );
+      } else if (line.startsWith("\\(")) {
+        return (
+          <span key={index} className="text-gray-200">
+            {line.slice(2, line.length - 2)} 
+          </span>
+        );
+      }
+      return null;
+    };
+  
+    const formattedBlocks = [];
+    let currentBlock = []; 
+    let codeLanguage = ''; 
+    let isInCodeBlock = false; 
+  
+    for (let index = 0; index < responseLines.length; index++) {
+      let line = responseLines[index].trim();
+  
+      const mathRendered = renderMathAsText(line, index);
+      if (mathRendered) {
+        formattedBlocks.push(mathRendered);
+        continue; 
+      }
+  
+      if (line.startsWith('###')){ 
+        formattedBlocks.push(renderHeading(line, index));
+      } else if (line.startsWith('####')) { 
+        formattedBlocks.push(renderHeading(line, index));
+      }
+      
+      else if (line.match(/^\d+\./)) {
+        formattedBlocks.push(
+          <div key={index} className="text-base text-gray-300 mt-4 mb-4">
+            {line.replace(/\*\*/g, '')}
+          </div>
+        );
+      }
+      else if (line.startsWith('- ') || line.startsWith('• ')) {
+        formattedBlocks.push(renderList(line, index));
+      }
+      else if (line.startsWith("```") && !isInCodeBlock) {
+        codeLanguage = line.slice(3).trim();
+        isInCodeBlock = true; 
+      }
+      else if (line.endsWith("```") && isInCodeBlock) {
+        isInCodeBlock = false;
+        formattedBlocks.push(processCodeBlock(currentBlock.join('\n'), codeLanguage));
+        currentBlock = []; 
+      }
+      else if (isInCodeBlock) {
+        currentBlock.push(line);
+      }
+      else if (line.startsWith("`") && line.endsWith("`")) {
+        formattedBlocks.push(renderInlineCode(line, index));
+      }
+      else if (line.includes('**') || line.includes('__')) {
+        formattedBlocks.push(renderTextStyle(line, index, '**'));
+      }
+      else if (line.includes('*') || line.includes('_')) {
+        formattedBlocks.push(renderTextStyle(line, index, '*'));
+      }
+      else {
+        formattedBlocks.push(
+          <div key={index} className="text-base text-gray-300 mb-8">
+            {line}
+          </div>
+        );
+      }
+    }
+  
+    return (
+      <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+        {formattedBlocks}
+      </div>
+    );
+  };
+
+
+  // Another version for formatting. Both equally bad so whichever one we prefer we can keep (BELOW)
+
+  // const MessageFormatter = ({ content }) => {
+  //   const getTextContent = (content) => {
+  //     if (typeof content === 'string') {
+  //       return content;
+  //     }
+  //     if (content && typeof content === 'object') {
+  //       return content.response || content.contextSummary || '';
+  //     }
+  //     return '';
+  //   };
+  
+  //   const cleanMarkdown = (text) => {
+  //     return text.replace(/^#{1,6}\s+/g, '');
+  //   };
+  
+  //   const cleanEmphasis = (text) => {
+  //     const cleanedText = text
+  //       .replace(/^\*-|-\*$/g, '')
+  //       .replace(/^\*|\*$/g, '')
+  //       .replace(/\*([^*]+)\*/g, '$1')
+  //       .replace(/^-\s*/, '');
+
+  //     return cleanedText.replace(/[.:]\s*$/, '').trim();
+  //   };
+  
+  //   const formatMathExpression = (text) => {
+  //     let formattedText = text.replace(/^\[(.*)\]$/, '$1');
+  
+  //     formattedText = formattedText
+  //       .replace(/\\frac{([^}]+)}{([^}]+)}/g, '<sup>$1</sup>&#8260;<sub>$2</sub>')
+  //       .replace(/(\d+)\/(\d+)/g, '<sup>$1</sup>&#8260;<sub>$2</sub>')
+      
+  //       .replace(/\\([a-zA-Z]+)/g, (match, symbol) => {
+  //         const symbols = {
+  //           'infty': '∞',
+  //           'times': '×',
+  //           'frac': '/',
+  //           'sum': '∑',
+  //           'int': '∫'
+  //         };
+  //         return symbols[symbol] || match;
+  //       })
+
+  //       .replace(/_([a-zA-Z0-9]+)/g, '<sub>$1</sub>')
+  //       .replace(/\^([a-zA-Z0-9-]+)/g, '<sup>$1</sup>')
+  //       .replace(/P\(([^)]+)\)/g, 'P($1)')
+  //       .replace(/F_X/g, 'F<sub>X</sub>')
+  //       .replace(/f_X/g, 'f<sub>X</sub>')
+  //       .replace(/^nC_k/g, '<sup>n</sup>C<sub>k</sub>')
+  //       .replace(/sum_i=0\^x/g, '∑<sub>i=0</sub><sup>x</sup>')
+  //       .replace(/\\/g, '')
+  //       .replace(/\{([^}]+)\}/g, '$1');
+  
+  //     return formattedText;
+  //   };
+  
+  //   const processLineContent = (text) => {
+  //     if (text.includes('P(') || 
+  //         text.includes('F(') || 
+  //         text.includes('_') || 
+  //         text.includes('^') || 
+  //         text.includes('\\')) {
+  //       return formatMathExpression(text);
+  //     }
+      
+  //     return cleanEmphasis(cleanMarkdown(text));
+  //   };
+  
+  //   const isNumberedListItem = (line) => {
+  //     const match = line.trim().match(/^(?:\*-)?(\d+)[\s.:]+([^]*)$/);
+  //     if (match) {
+  //       return {
+  //         isNumbered: true,
+  //         number: parseInt(match[1]),
+  //         content: processLineContent(match[2].trim()),
+  //         indentLevel: getIndentLevel(line)
+  //       };
+  //     }
+  //     return { isNumbered: false };
+  //   };
+  
+  //   const isBulletListItem = (line) => {
+  //     return line.trim().match(/^[-•*]\s/);
+  //   };
+  
+  //   const getIndentLevel = (line) => {
+  //     const match = line.match(/^(\s*)/);
+  //     return match ? match[1].length : 0;
+  //   };
+  
+  //   const processListItem = (line) => {
+  //     const content = line.replace(/^[-•*]\s*|\d+[\s.:]+/, '').trim();
+  //     return processLineContent(content);
+  //   };
+  
+  //   const processCodeBlock = (code, language) => {
+  //     const lines = code.split('\n').filter(line => line.trim());
+  //     return (
+  //       <div className="relative my-4">
+  //         {language && (
+  //           <div className="absolute right-2 top-2 px-2 py-1 text-xs text-gray-400 bg-gray-900 rounded">
+  //             {language}
+  //           </div>
+  //         )}
+  //         <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto">
+  //           <code className="text-sm text-gray-200 font-mono" style={{ whiteSpace: 'pre' }}>
+  //             {lines.join('\n')}
+  //           </code>
+  //         </pre>
+  //       </div>
+  //     );
+  //   };
+  
+  //   const createNumberedList = (items, startNumber = 1) => {
+  //     if (items.length === 0) return null;
+      
+  //     return (
+  //       <ol start={startNumber} className="list-decimal pl-6 space-y-2 my-4">
+  //         {items.map((item, index) => (
+  //           <li key={index} className="text-white">
+  //             <span dangerouslySetInnerHTML={{ __html: item.content }} />
+  //             {item.subItems && item.subItems.length > 0 && (
+  //               <ul className="list-disc pl-6 mt-2 space-y-2">
+  //                 {item.subItems.map((subItem, subIndex) => (
+  //                   <li key={subIndex} className="text-white">
+  //                     <span dangerouslySetInnerHTML={{ __html: processLineContent(subItem) }} />
+  //                   </li>
+  //                 ))}
+  //               </ul>
+  //             )}
+  //           </li>
+  //         ))}
+  //       </ol>
+  //     );
+  //   };
+  
+  //   const formatText = (text) => {
+  //     if (!text) return null;
+  
+  //     const lines = text.split('\n');
+  //     let currentBlock = [];
+  //     let formattedBlocks = [];
+  //     let currentMode = 'paragraph';
+  //     let isInCodeBlock = false;
+  //     let codeLanguage = '';
+  //     let currentNumberedList = [];
+  //     let currentSubItems = [];
+  
+  //     const processCurrentBlock = () => {
+  //       if (currentBlock.length === 0) return;
+  
+  //       if (currentMode === 'code') {
+  //         formattedBlocks.push(processCodeBlock(currentBlock.join('\n'), codeLanguage));
+  //       } else if (currentMode === 'paragraph') {
+  //         const processedContent = currentBlock.map(line => processLineContent(line)).join(' ');
+  //         formattedBlocks.push(
+  //           <p key={formattedBlocks.length} className="my-4 text-white leading-relaxed">
+  //             <span dangerouslySetInnerHTML={{ __html: processedContent }} />
+  //           </p>
+  //         );
+  //       } else if (currentMode === 'bullet') {
+  //         formattedBlocks.push(
+  //           <ul key={formattedBlocks.length} className="list-disc pl-6 space-y-2 my-4">
+  //             {currentBlock.map((item, i) => (
+  //               <li key={i} className="text-white">
+  //                 <span dangerouslySetInnerHTML={{ __html: processLineContent(item) }} />
+  //               </li>
+  //             ))}
+  //           </ul>
+  //         );
+  //       }
+        
+  //       currentBlock = [];
+  //     };
+  
+  //     lines.forEach((line) => {
+  //       if (line.trim().startsWith('```')) {
+  //         if (!isInCodeBlock) {
+  //           processCurrentBlock();
+  //           isInCodeBlock = true;
+  //           currentMode = 'code';
+  //           codeLanguage = line.trim().slice(3).trim();
+  //         } else {
+  //           processCurrentBlock();
+  //           isInCodeBlock = false;
+  //           currentMode = 'paragraph';
+  //           codeLanguage = '';
+  //         }
+  //         return;
+  //       }
+  
+  //       if (isInCodeBlock) {
+  //         currentBlock.push(line);
+  //         return;
+  //       }
+  
+  //       line = line.trim();
+        
+  //       if (!line) {
+  //         if (currentNumberedList.length > 0) {
+  //           formattedBlocks.push(createNumberedList(currentNumberedList));
+  //           currentNumberedList = [];
+  //         }
+  //         processCurrentBlock();
+  //         return;
+  //       }
+  
+  //       const { isNumbered, content } = isNumberedListItem(line);
+        
+  //       if (isNumbered) {
+  //         if (currentMode !== 'number') {
+  //           processCurrentBlock();
+  //         }
+  //         if (currentSubItems.length > 0 && currentNumberedList.length > 0) {
+  //           currentNumberedList[currentNumberedList.length - 1].subItems = [...currentSubItems];
+  //           currentSubItems = [];
+  //         }
+  //         currentNumberedList.push({ content, subItems: [] });
+  //         currentMode = 'number';
+  //         return;
+  //       }
+  
+  //       if (isBulletListItem(line)) {
+  //         if (currentMode === 'number') {
+  //           currentSubItems.push(processLineContent(processListItem(line)));
+  //         } else {
+  //           if (currentMode !== 'bullet') {
+  //             processCurrentBlock();
+  //             currentMode = 'bullet';
+  //           }
+  //           currentBlock.push(processListItem(line));
+  //         }
+  //         return;
+  //       }
+  
+  //       if (currentMode !== 'paragraph') {
+  //         if (currentMode === 'number') {
+  //           if (currentSubItems.length > 0) {
+  //             currentNumberedList[currentNumberedList.length - 1].subItems = [...currentSubItems];
+  //             currentSubItems = [];
+  //           }
+  //           formattedBlocks.push(createNumberedList(currentNumberedList));
+  //           currentNumberedList = [];
+  //         }
+  //         processCurrentBlock();
+  //         currentMode = 'paragraph';
+  //       }
+        
+  //       currentBlock.push(line);
+  //     });
+  
+  //     if (currentSubItems.length > 0 && currentNumberedList.length > 0) {
+  //       currentNumberedList[currentNumberedList.length - 1].subItems = [...currentSubItems];
+  //     }
+  //     if (currentNumberedList.length > 0) {
+  //       formattedBlocks.push(createNumberedList(currentNumberedList));
+  //     }
+  //     processCurrentBlock();
+  
+  //     return formattedBlocks;
+  //   };
+  
+  //   const textContent = getTextContent(content);
+  
+  //   return (
+  //     <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+  //       {formatText(textContent)}
+  //     </div>
+  //   );
+  // };
+
+
   return (
     <div className="flex h-screen" style={{ backgroundColor: '#091720' }}>
       {/* Sidebar */}
@@ -688,10 +1102,34 @@ export default function ChatLayout() {
                 currentChatId={currentChatId}
                 // Check to prevent accessing undefined `chats`
                 chats={currentSpaceId && spaces[currentSpaceId] ? spaces[currentSpaceId].chats : {}}
+                // updateChatMessages={(chatId, message) => {
+                //   const updatedSpaces = { ...spaces };
+                //   if (updatedSpaces[currentSpaceId] && updatedSpaces[currentSpaceId].chats[chatId]) {
+                //     updatedSpaces[currentSpaceId].chats[chatId].messages.push(message);
+                //     setSpaces(updatedSpaces);
+                //   }
+                // }}
                 updateChatMessages={(chatId, message) => {
                   const updatedSpaces = { ...spaces };
+                
                   if (updatedSpaces[currentSpaceId] && updatedSpaces[currentSpaceId].chats[chatId]) {
-                    updatedSpaces[currentSpaceId].chats[chatId].messages.push(message);
+                    if (message.role === 'ai' && message.content.response) {
+                      const formattedMessage = {
+                        role: 'ai',
+                        content: <MessageFormatter content={message.content} />
+                      };
+                      updatedSpaces[currentSpaceId].chats[chatId].messages.push(formattedMessage);
+                    } else {
+                      updatedSpaces[currentSpaceId].chats[chatId].messages.push({
+                        role: message.role,
+                        content: (
+                          <div className={`p-4 rounded-md ${message.role === 'ai' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-black'}`}>
+                            {message.content}
+                          </div>
+                        )
+                      });
+                    }
+                
                     setSpaces(updatedSpaces);
                   }
                 }}
