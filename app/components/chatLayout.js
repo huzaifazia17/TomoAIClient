@@ -10,6 +10,8 @@ import Image from 'next/image';
 import logo from '../resources/logo.png';
 import chatIcon from '../resources/chatIcon.png';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
+import blackLogoOnly from '../resources/blackLogoOnly.png';
+
 import SpacePage from './spacePage';
 import StudentSpaceManagement from './StudentSpaceManagement';
 import { InlineMath, BlockMath } from 'react-katex';
@@ -81,6 +83,21 @@ export default function ChatLayout() {
     } catch (error) {
       console.error('Error logging out:', error);
     }
+  };
+
+  const [theme, setTheme] = useState(
+    typeof window !== 'undefined' && localStorage.getItem('theme') === 'dark'
+      ? 'dark'
+      : 'light'
+  );
+  
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+  
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
 
@@ -489,13 +506,13 @@ export default function ChatLayout() {
     const responseLines = response.split("\n");
   
     const renderInlineCode = (line, index) => (
-      <span key={index} className="bg-gray-800 text-white px-1 py-0.5 rounded">
+      <span key={index} className="bg-[var(--secondary-bg)] text-[var(--foreground)] px-1 py-0.5 rounded">
         {line.slice(1, line.length - 1)} 
       </span>
     );
   
     const renderHeading = (line, index) => (
-      <div key={index} className={`text-xl font-semibold text-gray-100 mt-8 mb-4`}>
+      <div key={index} className={`text-xl font-semibold text-[var(--foreground)] mt-8 mb-4`}>
         {line.replace(/\*\*/g, '')}
       </div>
     );
@@ -505,12 +522,12 @@ export default function ChatLayout() {
       return (
         <div className="relative my-8">
           {language && (
-            <div className="absolute right-2 top-2 px-2 py-1 text-xs text-gray-400 bg-gray-900 rounded">
+            <div className="absolute right-2 top-2 px-2 py-1 text-xs text-[var(--code-label)] bg-[var(--code-bg)] rounded">
               {language}
             </div>
           )}
-          <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto">
-            <code className="text-sm text-gray-200 font-mono" style={{ whiteSpace: 'pre' }}>
+          <pre className="bg-[var(--code-bg)] p-4 rounded-lg overflow-x-auto">
+          <code className="text-sm text-[var(--foreground)] font-mono" style={{ whiteSpace: 'pre' }}>
               {lines.join('\n')}
             </code>
           </pre>
@@ -519,7 +536,7 @@ export default function ChatLayout() {
     };
   
     const renderTextStyle = (line, index, style) => (
-      <div key={index} className="text-base text-gray-300 mb-8">
+      <div key={index} className="text-base text-[var(--foreground)] mb-8">
         {line.split(style).map((part, idx) =>
           idx % 2 === 1 ? (style === '**' ? <b key={idx}>{part}</b> : <i key={idx}>{part}</i>) : part
         )}
@@ -528,20 +545,18 @@ export default function ChatLayout() {
   
     const renderList = (line, index) => (
       <ul key={index} className="list-disc pl-8 mt-6 space-y-4">
-        <li className="text-base text-gray-300">{line.trim().substring(2).trim()}</li>
+        <li key={index} className="text-base text-[var(--foreground)]">{line.trim().substring(2).trim()}</li>
       </ul>
     );
   
     const renderMathAsText = (line, index) => {
       if (line.startsWith("\\[")) {
         return (
-          <div key={index} className="text-gray-200 text-lg mb-6">
-            {line.slice(2, line.length - 2)} 
-          </div>
+          <div key={index} className="text-[var(--foreground)] text-lg mb-6">{line.slice(2, line.length - 2)}</div>
         );
       } else if (line.startsWith("\\(")) {
         return (
-          <span key={index} className="text-gray-200">
+          <span key={index} className="text-[var(--foreground)]">
             {line.slice(2, line.length - 2)} 
           </span>
         );
@@ -571,7 +586,7 @@ export default function ChatLayout() {
       
       else if (line.match(/^\d+\./)) {
         formattedBlocks.push(
-          <div key={index} className="text-base text-gray-300 mt-4 mb-4">
+          <div key={index} className="text-base text-[var(--foreground)] mt-4 mb-4">
             {line.replace(/\*\*/g, '')}
           </div>
         );
@@ -602,7 +617,7 @@ export default function ChatLayout() {
       }
       else {
         formattedBlocks.push(
-          <div key={index} className="text-base text-gray-300 mb-8">
+          <div key={index} className="text-base text-[var(--foreground)] mb-8">
             {line}
           </div>
         );
@@ -610,7 +625,7 @@ export default function ChatLayout() {
     }
   
     return (
-      <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+      <div className="bg-[var(--primary-accent)] p-6 rounded-lg shadow-lg">
         {formattedBlocks}
       </div>
     );
@@ -892,9 +907,9 @@ export default function ChatLayout() {
 
 
   return (
-    <div className="flex h-screen" style={{ backgroundColor: '#091720' }}>
+    <div className="flex h-screen bg-[var(--background)] text-[var(--foreground)]">
       {/* Sidebar */}
-      <div className="w-1/5 bg-gray-900 p-4 flex flex-col justify-between">
+      <div className="w-1/5 bg-[var(--secondary-bg)] text-[var(--foreground)] p-4 flex flex-col justify-between">
         {/* Top section for logo */}
         <div className="flex justify-center mb-4">
           <Image
@@ -908,13 +923,15 @@ export default function ChatLayout() {
         {/* Spaces and Chats */}
         <div className="overflow-y-auto mb-4 flex-grow">
           {Object.keys(spaces).length === 0 ? (
-            <p className="text-gray-500">No spaces available</p>
+            <p className="text-[var(--empty-state-text)]">No spaces available</p>
           ) : (
             Object.keys(spaces).map((spaceId) => (
               <div key={spaceId} className="mb-4">
                 {/* Space */}
                 <div
-                  className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${currentSpaceId === spaceId ? 'bg-gray-700' : 'bg-slate-700'}`}
+                  className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${
+                    currentSpaceId === spaceId ? 'bg-[var(--primary-accent)]' : 'bg-[var(--secondary-accent)]'
+                  }`}
                 >
                   {editingSpaceId === spaceId ? (
                     <input
@@ -922,8 +939,8 @@ export default function ChatLayout() {
                       value={newSpaceName}
                       onChange={(e) => setNewSpaceName(e.target.value)}
                       onBlur={() => handleSaveSpaceName(spaceId)}
-                      className="bg-gray-700 text-white p-1 rounded"
-                    />
+                      className="bg-[var(--primary-accent)] text-[var(--foreground)] p-1 rounded"
+                      />
                   ) : (
                     <span onClick={() => switchSpace(spaceId)} className="flex-grow">
                       {spaces[spaceId].title}
@@ -931,7 +948,7 @@ export default function ChatLayout() {
                   )}
                   <FontAwesomeIcon
                     icon={faPlus}
-                    className="ml-2 text-gray-300 cursor-pointer"
+                    className="ml-2 text-[var(--foreground)] opacity-70 cursor-pointer hover:opacity-100"
                     onClick={() => createNewChat(spaceId)}
                   />
                 </div>
@@ -942,10 +959,12 @@ export default function ChatLayout() {
                     <p className="text-gray-500">No chats available</p>
                   ) : (
                     Object.keys(spaces[spaceId].chats).map((chatId) => (
-                      <div
-                        key={chatId}
-                        className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${currentChatId === chatId ? 'bg-gray-700' : 'bg-gray-900'}`}
-                      >
+                      <div 
+                      key={chatId}
+                      className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${
+                        currentChatId === chatId ? 'bg-[var(--primary-accent)]' : 'bg-[var(--secondary-bg)]'
+                      }`}
+>
                         {editingChatId === chatId ? (
                           <input
                             type="text"
@@ -961,12 +980,12 @@ export default function ChatLayout() {
                         )}
                         <FontAwesomeIcon
                           icon={faEdit}
-                          className="ml-2 text-gray-300 cursor-pointer"
+                          className="ml-2 text-[var(--foreground)] cursor-pointer"
                           onClick={() => handleEditChatName(spaceId, chatId)}
                         />
                         <FontAwesomeIcon
                           icon={faTrash}
-                          className="ml-2 text-gray-300 cursor-pointer delete-icon"
+                          className="ml-2 text-[var(--foreground)] cursor-pointer delete-icon"
                           onClick={() => handleDeleteChat(spaceId, chatId)}
                         />
                       </div>
@@ -984,7 +1003,7 @@ export default function ChatLayout() {
           {(userRole === 'ta' || userRole === 'professor') && (
             <button
               onClick={createNewSpace}
-              className="bg-gray-700 text-white px-4 py-2 rounded-xl"
+              className="bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-xl"
               style={{ width: '50%' }} // Button width 50% of the sidebar
             >
               + New Space
@@ -1022,8 +1041,8 @@ export default function ChatLayout() {
           <>
             {/* Top Bar with Logo and Profile Icon */}
             <div className="bg-gray-800 bg-transparent p-4 rounded-t-lg flex justify-between items-center">
-              <Image
-                src={whiteLogoOnly}
+            <Image
+                src={theme === 'light' ? blackLogoOnly : whiteLogoOnly}
                 alt="TomoAI Logo"
                 width={100}
                 height={40}
@@ -1033,26 +1052,41 @@ export default function ChatLayout() {
               <div className="relative" ref={dropdownRef}>
                 <FontAwesomeIcon
                   icon={faUser}
-                  className="text-white cursor-pointer"
+                  className={`cursor-pointer ${
+                    theme === 'light' ? 'text-black' : 'text-white'
+                  }`}
                   size="lg"
                   onClick={() => setDropdownVisible(!dropdownVisible)}
                 />
                 {dropdownVisible && (
-                  <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-lg z-10">
-                    <ul className="py-1">
-                      <li className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
+                  <div className="absolute right-0 mt-2 w-48 bg-[var(--secondary-bg)] rounded-lg shadow-lg z-10">
+                    <ul className="py-1 text-[var(--foreground)]">
+                      <li className="px-4 py-2 hover:bg-[var(--hover-bg)] cursor-pointer flex items-center">
                         <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
                       </li>
-                      <hr className="border-t border-gray-600 my-1" />
+                      <hr className="border-t border-[var(--border)] my-1" />
+
+                      {/* Theme Toggle Button */}
+                      <li
+                        onClick={toggleTheme}
+                        className={`px-4 py-2 cursor-pointer flex items-center justify-between ${
+                          theme === 'light' ? 'bg-[#A3D8F4] text-black' : 'bg-[#2d3748] text-white'
+                        }`}
+                      >
+                        {theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                      </li>
+
+                      <hr className="border-t border-[var(--border)] my-1" />
                       <li
                         onClick={handleLogout}
-                        className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center"
+                        className="px-4 py-2 hover:bg-[var(--hover-bg)] cursor-pointer flex items-center"
                       >
                         <FontAwesomeIcon icon={faTrash} className="mr-2" /> Logout
                       </li>
                     </ul>
                   </div>
                 )}
+
               </div>
             </div>
 
@@ -1082,9 +1116,8 @@ export default function ChatLayout() {
                         />
                       )}
                       <p
-                        className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-[#08141F] text-white' : 'text-white'
-                          }`}
-                      >
+                        className={`inline-block p-2 rounded-lg text-[var(--foreground)]`}
+>
                         {msg.content}
                       </p>
                     </div>
@@ -1123,7 +1156,7 @@ export default function ChatLayout() {
                       updatedSpaces[currentSpaceId].chats[chatId].messages.push({
                         role: message.role,
                         content: (
-                          <div className={`p-4 rounded-md ${message.role === 'ai' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-black'}`}>
+                          <div className={`p-4 rounded-md ${message.role === 'ai' ? `bg-[var(--secondary-bg)] text-[var(--foreground)]` : 'bg-[var(--primary-accent)] text-[var(--foreground)]'}`}>
                             {message.content}
                           </div>
                         )
@@ -1152,7 +1185,7 @@ export default function ChatLayout() {
           scrollbar-width: none; /* For Firefox */
         }
         .delete-icon:hover {
-          color: red !important;
+          color: red;
         }
       `}</style>
     </div>

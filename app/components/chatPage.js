@@ -322,10 +322,10 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
               onClick={() => setPrompt(question)}
               className="px-2 py-1 rounded-full text-center text-gray-200 hover:bg-gray-600 focus:outline-none transition-all"
               style={{
-                backgroundColor: '#1a1e2e',
+                backgroundColor: 'var(--primary-accent)',
                 fontSize: '0.75rem',
-                color: '#e0e0e0',
-                boxShadow: '0px 0px 8px rgba(13, 77, 133, 0.8)',
+                color: 'var(--foreground)',
+                boxShadow: '0px 0px 8px var(--primary-accent)',
                 border: 'none',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 //comment out if i want questions to wrap
@@ -350,8 +350,10 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
         <form onSubmit={handleSubmit} className="w-4/5">
           <div className="relative">
             <textarea
-              className="w-full p-3 border-gray-300 rounded-full bg-gray-800 text-white pr-10 resize-none overflow-auto text-center"
+              className="w-full p-3 border-gray-300 rounded-full text-center resize-none overflow-auto"
               style={{
+                backgroundColor: 'var(--primary-accent)',
+                color: 'var(--foreground)',
                 maxHeight: '150px',
                 scrollbarWidth: 'none', // For Firefox
                 msOverflowStyle: 'none', // For Internet Explorer and Edge
@@ -371,11 +373,12 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
             `}</style>
             <button
               type="submit"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white opacity-50 cursor-pointer"
+              className="absolute right-5 top-[48%] transform -translate-y-1/2 text-[var(--foreground)] opacity-50 cursor-pointer transition-transform duration-200 ease-in-out hover:scale-110 hover:opacity-100"
               disabled={loading}
             >
               <FontAwesomeIcon icon={faArrowUp} size="lg" />
             </button>
+
           </div>
         </form>
       </div>

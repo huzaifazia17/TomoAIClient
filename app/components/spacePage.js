@@ -341,12 +341,12 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                             value={newSpaceName}
                             onChange={(e) => setNewSpaceName(e.target.value)}
                             onBlur={saveSpaceName}
-                            className="bg-transparent text-white p-2 rounded-lg text-center"
+                            className="bg-transparent text-[var(--foreground)] p-2 rounded-lg text-center"
                             autoFocus
                         />
                     ) : (
                         <h1
-                            className="bg-transparent text-white text-2xl cursor-pointer"
+                            className="bg-transparent text-[var(--foreground)] text-2xl cursor-pointer"
                             onClick={startEditing}
                         >
                             {spaceTitle}
@@ -364,7 +364,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                     <div className="relative" ref={dropdownRef}>
                         <FontAwesomeIcon
                             icon={faUser}
-                            className="text-white cursor-pointer"
+                            className="text-[var(--foreground)] cursor-pointer"
                             size="lg"
                             onClick={() => setDropdownVisible(!dropdownVisible)}
                         />
@@ -387,8 +387,8 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
             <div className="flex flex-grow p-4">
                 <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
-                    <h2 className="text-white text-xl mb-4 text-center">Document Management</h2>
-                    <table className="w-full text-white bg-transparent">
+                    <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">Document Management</h2>
+                    <table className="w-full text-[var(--foreground)] bg-transparent">
                         <thead>
                             <tr>
                                 <th className="text-left p-2">Document Name</th>
@@ -396,7 +396,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                                     Visibility
                                     <span className="ml-1 relative group">
                                         <FontAwesomeIcon icon={faQuestionCircle} className="text-gray-400 text-xs cursor-pointer" />
-                                        <span className="absolute bottom-full mb-2 hidden group-hover:flex bg-black opacity-100 text-white text-xs rounded-lg px-2 py-1 w-48 text-center shadow-lg z-50">
+                                        <span className="absolute bottom-full mb-2 hidden group-hover:flex bg-black opacity-100 text-[var(--foreground)] text-xs rounded-lg px-2 py-1 w-48 text-center shadow-lg z-50">
 
                                             Check the box for visibility if you wish for the students to see the document has been uploaded to this space
                                         </span>
@@ -449,8 +449,8 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                 <div className="w-px bg-gray-500 mx-4"></div>
 
                 <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
-                    <h2 className="text-white text-xl mb-4 text-center">User Management</h2>
-                    <table className="w-full text-white bg-transparent">
+                    <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">User Management</h2>
+                    <table className="w-full text-[var(--foreground)] bg-transparent">
                         <thead>
                             <tr>
                                 <th className="text-left p-2">Name</th>

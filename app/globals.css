@@ -1,23 +1,45 @@
+@import "@fontsource/poppins"; /* Ensure this is at the top of the file */
+/* Tailwind Base Classes */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff; /* Light mode background */
+  --foreground: #000000; /* Light mode text */
+  --secondary-bg: #EBF8FF; /* Light mode secondary background */
+  --primary-accent: #A3D8F4; /* Light mode accent (e.g., active space/chat) */
+  --secondary-accent: #A3D8F4; /* Light mode secondary accent */
+  --hover-bg: #A3D8F4; /* Light mode hover */
+  --border: #d0d0d0; /* Light mode border */
+
+  --code-bg: #f5f5f5; /* Light mode code block */
+  --code-label: #757575; /* Light mode code label */
+
+  --empty-state-text: #808080; /* Light mode empty state */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="dark"] {
+  --background: #091720; /* Dark mode background */
+  --foreground: #ffffff; /* Dark mode text */
+  --secondary-bg: #08141F; /* Dark mode secondary background */
+  --primary-accent: #2d3748; /* Dark mode accent (e.g., active space/chat) */
+  --secondary-accent: #4a5568; /* Dark mode secondary accent */
+  --hover-bg: #2f3941; /* Dark mode hover */
+  --border: #718096; /* Dark mode border */
+
+  --code-bg: #091720; /* Dark mode code block */
+  --code-label: #a0aec0; /* Dark mode code label */
+
+  --empty-state-text: #718096; /* Dark mode empty state */
 }
+
 
 body {
+  background-color: var(--background);
   color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 @layer utilities {
