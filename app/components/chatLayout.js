@@ -5,21 +5,19 @@ import { auth } from '../firebase/config';
 import { useRouter } from 'next/navigation';
 import ChatPage from './chatPage';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEdit, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEdit, faTrash, faPlus, faShareAlt } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import logo from '../resources/logo.png';
 import chatIcon from '../resources/chatIcon.png';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 import blackLogoOnly from '../resources/blackLogoOnly.png';
-
 import SpacePage from './spacePage';
 import StudentSpaceManagement from './StudentSpaceManagement';
+import ChatPlusPage from './chatPlusPage';
+
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { MathJax } from 'better-react-mathjax';
-
-
-
 
 const saveSpacesToLocalStorage = (spaces) => {
   localStorage.setItem('tomoai-spaces', JSON.stringify(spaces));
@@ -38,6 +36,7 @@ export default function ChatLayout() {
   const router = useRouter();
   const [userRole, setUserRole] = useState(null);
   const [userFirebaseUid, setUserFirebaseUid] = useState(null);
+  const [showChatPlus, setShowChatPlus] = useState(false);
 
   // Initialize a variable to track the highest space number
   let highestSpaceNumber = 0;
@@ -55,7 +54,6 @@ export default function ChatLayout() {
 
     fetchFirebaseUid();
   }, [router]);
-
 
   // Fetch user role on component mount
   useEffect(() => {
@@ -90,16 +88,15 @@ export default function ChatLayout() {
       ? 'dark'
       : 'light'
   );
-  
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
-  
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
-
 
   const handleEditSpaceName = (spaceId) => {
     setEditingSpaceId(spaceId);
@@ -188,13 +185,13 @@ export default function ChatLayout() {
           spacesObj[PERSONAL_ASSISTANT_SPACE_ID] = {
             title: "Personal Assistant",
             chats: {
-              "chat-tomo": { title: "Tomo", messages: [] },
+              "chat-tomo": { title: "Tomo", messages: [], chatPlusId: "NA" },
             },
           };
         } else {
           // Ensure the existing "Personal Assistant" space has the "Tomo" chat
           if (!spacesObj[PERSONAL_ASSISTANT_SPACE_ID].chats["chat-tomo"]) {
-            spacesObj[PERSONAL_ASSISTANT_SPACE_ID].chats["chat-tomo"] = { title: "Tomo", messages: [] };
+            spacesObj[PERSONAL_ASSISTANT_SPACE_ID].chats["chat-tomo"] = { title: "Tomo", messages: [], chatPlusId: "NA" };
           }
         }
 
@@ -208,18 +205,21 @@ export default function ChatLayout() {
     fetchSpacesFromDatabase();
   }, []);
 
+  const personalAssistantSpaceId = userFirebaseUid
+    ? `personal-assistant-space-${userFirebaseUid}`
+    : null;
 
-  // Save spaces to localStorage whenever they are updated
   useEffect(() => {
     saveSpacesToLocalStorage(spaces);
   }, [spaces]);
 
-  // Function to create a new chat within a space
   const createNewChat = async (spaceId) => {
     const newChatId = `chat-${Date.now()}`;
     const chatName = `New Chat ${Object.keys(spaces[spaceId].chats).length + 1}`;
 
     try {
+      const chatPlusId = "NA";
+
       const response = await fetch('http://localhost:3009/api/chats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -227,6 +227,7 @@ export default function ChatLayout() {
           firebaseUid: userFirebaseUid,
           spaceId,
           chatId: newChatId,
+          chatPlusId,
           chatName,
         }),
       });
@@ -237,7 +238,6 @@ export default function ChatLayout() {
 
       const newChat = await response.json();
 
-      // Update the chat state locally
       const updatedSpaces = {
         ...spaces,
         [spaceId]: {
@@ -247,17 +247,17 @@ export default function ChatLayout() {
             [newChat.chatId]: {
               title: newChat.chatName,
               messages: [],
+              chatPlusId,
             },
           },
         },
       };
       setSpaces(updatedSpaces);
-      setCurrentChatId(newChatId);
+      setCurrentChatId(newChat.chatId);
     } catch (error) {
       console.error('Error creating chat:', error);
     }
   };
-
 
   // Switch to a space or chat
   const switchSpace = (spaceId) => {
@@ -285,9 +285,7 @@ export default function ChatLayout() {
         ...spaces,
         [spaceId]: {
           ...spaces[spaceId],
-          chats: {
-            ...spaces[spaceId].chats,
-          },
+          chats: { ...spaces[spaceId].chats },
         },
       };
       delete updatedSpaces[spaceId].chats[chatId];
@@ -334,11 +332,14 @@ export default function ChatLayout() {
 
           const { chats } = await chatResponse.json();
           const chatsObj = chats.reduce((acc, chat) => {
-            acc[chat.chatId] = { title: chat.chatName, messages: [] };
+            acc[chat.chatId] = {
+              title: chat.chatName,
+              messages: [],
+              chatPlusId: chat.chatPlusId ? chat.chatPlusId : "NA",
+            };
             return acc;
           }, {});
 
-          // Add chats to the respective space in spacesObj
           spacesObj[space.spaceId].chats = chatsObj;
         }
 
@@ -350,10 +351,7 @@ export default function ChatLayout() {
     };
 
     fetchAllChats();
-    // Pass an empty dependency array to ensure the effect runs only once
   }, []);
-
-
 
   // Edit chat name
   const handleEditChatName = (spaceId, chatId) => {
@@ -397,8 +395,6 @@ export default function ChatLayout() {
       console.error('Error updating chat name:', error);
     }
   };
-
-
 
   const createNewSpace = async () => {
     if (userRole === 'ta' || userRole === 'professor') {
@@ -445,6 +441,7 @@ export default function ChatLayout() {
 
         setCurrentSpaceId(data.space.spaceId);
         setCurrentChatId(null);
+
       } catch (error) {
         console.error('Error creating new space:', error);
       }
@@ -452,7 +449,6 @@ export default function ChatLayout() {
       console.log('Only TAs or professors can create a new space.');
     }
   };
-
 
   // Function to save the space name in the database
   const handleSaveSpaceName = async (spaceId, newName) => {
@@ -482,8 +478,6 @@ export default function ChatLayout() {
     }
   };
 
-
-  // Close dropdown if clicked outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -498,6 +492,105 @@ export default function ChatLayout() {
     };
   }, []);
 
+  const handleSpaceSelect = (spaceId) => {
+    setCurrentSpaceId(spaceId);
+    setShowChatPlus(false);
+  };
+
+  const handleChatPlus = (spaceId) => {
+    setCurrentSpaceId(spaceId);
+    setShowChatPlus(true);
+  };
+
+  const createNewChatForChatPlus = async (spaceId) => {
+    let newChatName;
+    setSpaces((prevSpaces) => {
+      const chatCount = prevSpaces[spaceId]?.chats ? Object.keys(prevSpaces[spaceId].chats).length : 0;
+      newChatName = `New Chat ${chatCount + 1}`;
+      return prevSpaces;
+    });
+  
+    const newChatId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+  
+    try {
+      const newChatPlus = {
+        firebaseUid: userFirebaseUid,
+        chatPlusId: `cp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        spaceId,
+        chatPlusName: newChatName,
+        users: [userFirebaseUid],
+      };
+  
+      const cpResponse = await fetch('http://localhost:3009/api/chatplus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newChatPlus),
+      });
+  
+      if (!cpResponse.ok) {
+        throw new Error('Failed to create chatplus entry');
+      }
+  
+      const cpData = await cpResponse.json();
+      const chatPlusId = cpData.chatPlus.chatPlusId;
+      console.log('New ChatPlus entry created:', chatPlusId);
+  
+      const response = await fetch('http://localhost:3009/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firebaseUid: userFirebaseUid,
+          spaceId,
+          chatId: newChatId,
+          chatPlusId, 
+          chatName: newChatName,
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to create chat');
+      }
+  
+      const newChat = await response.json();
+
+      setSpaces((prevSpaces) => ({
+        ...prevSpaces,
+        [spaceId]: {
+          ...prevSpaces[spaceId],
+          chats: {
+            ...prevSpaces[spaceId].chats,
+            [newChat.chatId]: {
+              title: newChat.chatName,
+              messages: [],
+              chatPlusId, 
+            },
+          },
+        },
+      }));
+  
+      setCurrentChatId(newChat.chatId);
+    } catch (error) {
+      console.error('Error creating chat for chatplus:', error);
+    }
+  };
+
+  const shareChat = async (chatPlusId, newUserId) => {
+    try {
+      const response = await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}/users`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: newUserId }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to share chat');
+      }
+      alert('Chat shared successfully!');
+    } catch (error) {
+      console.error('Error sharing chat:', error);
+      alert('Error sharing chat');
+    }
+  };
+  
 
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -630,7 +723,6 @@ export default function ChatLayout() {
       </div>
     );
   };
-
 
   // Another version for formatting. Both equally bad so whichever one we prefer we can keep (BELOW)
 
@@ -905,7 +997,6 @@ export default function ChatLayout() {
   //   );
   // };
 
-
   return (
     <div className="flex h-screen bg-[var(--background)] text-[var(--foreground)]">
       {/* Sidebar */}
@@ -917,6 +1008,7 @@ export default function ChatLayout() {
             width={100}
             height={40}
             className="object-contain"
+            alt="Logo"
           />
         </div>
 
@@ -930,8 +1022,11 @@ export default function ChatLayout() {
                 {/* Space */}
                 <div
                   className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${
-                    currentSpaceId === spaceId ? 'bg-[var(--primary-accent)]' : 'bg-[var(--secondary-accent)]'
+                    currentSpaceId === spaceId
+                      ? 'bg-[var(--primary-accent)]'
+                      : 'bg-[var(--secondary-accent)]'
                   }`}
+                  onClick={() => handleSpaceSelect(spaceId)}
                 >
                   {editingSpaceId === spaceId ? (
                     <input
@@ -940,58 +1035,159 @@ export default function ChatLayout() {
                       onChange={(e) => setNewSpaceName(e.target.value)}
                       onBlur={() => handleSaveSpaceName(spaceId)}
                       className="bg-[var(--primary-accent)] text-[var(--foreground)] p-1 rounded"
-                      />
+                    />
                   ) : (
                     <span onClick={() => switchSpace(spaceId)} className="flex-grow">
                       {spaces[spaceId].title}
                     </span>
                   )}
+                  {/* Personal Chat creation */}
                   <FontAwesomeIcon
                     icon={faPlus}
                     className="ml-2 text-[var(--foreground)] opacity-70 cursor-pointer hover:opacity-100"
                     onClick={() => createNewChat(spaceId)}
                   />
                 </div>
-
+              
                 {/* Chats within the selected space */}
                 <div className="ml-6 mt-2">
-                  {Object.keys(spaces[spaceId].chats).length === 0 ? (
+                  {Object.keys(spaces[spaceId].chats)
+                    .filter(
+                      (chatId) =>
+                        spaces[spaceId].chats[chatId].chatPlusId === "NA"
+                    ).length === 0 ? (
                     <p className="text-gray-500">No chats available</p>
                   ) : (
-                    Object.keys(spaces[spaceId].chats).map((chatId) => (
-                      <div 
-                      key={chatId}
-                      className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${
-                        currentChatId === chatId ? 'bg-[var(--primary-accent)]' : 'bg-[var(--secondary-bg)]'
-                      }`}
->
-                        {editingChatId === chatId ? (
-                          <input
-                            type="text"
-                            value={newChatName}
-                            onChange={(e) => setNewChatName(e.target.value)}
-                            onBlur={() => handleSaveChatName(spaceId, chatId)}
-                            className="bg-gray-600 text-white p-1 rounded"
+                    Object.keys(spaces[spaceId].chats)
+                      .filter(
+                        (chatId) =>
+                          spaces[spaceId].chats[chatId].chatPlusId === "NA"
+                      )
+                      .map((chatId) => (
+                        <div
+                          key={chatId}
+                          className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${
+                            currentChatId === chatId
+                              ? 'bg-[var(--primary-accent)]'
+                              : 'bg-[var(--secondary-bg)]'
+                          }`}
+                        >
+                          {editingChatId === chatId ? (
+                            <input
+                              type="text"
+                              value={newChatName}
+                              onChange={(e) => setNewChatName(e.target.value)}
+                              onBlur={() => handleSaveChatName(spaceId, chatId)}
+                              className="bg-gray-600 text-white p-1 rounded"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => switchChat(spaceId, chatId)}
+                              className="flex-grow"
+                            >
+                              {spaces[spaceId].chats[chatId].title}
+                            </span>
+                          )}
+                          <FontAwesomeIcon
+                            icon={faEdit}
+                            className="ml-2 text-[var(--foreground)] cursor-pointer"
+                            onClick={() => handleEditChatName(spaceId, chatId)}
                           />
-                        ) : (
-                          <span onClick={() => switchChat(spaceId, chatId)} className="flex-grow">
-                            {spaces[spaceId].chats[chatId].title}
-                          </span>
-                        )}
-                        <FontAwesomeIcon
-                          icon={faEdit}
-                          className="ml-2 text-[var(--foreground)] cursor-pointer"
-                          onClick={() => handleEditChatName(spaceId, chatId)}
-                        />
-                        <FontAwesomeIcon
-                          icon={faTrash}
-                          className="ml-2 text-[var(--foreground)] cursor-pointer delete-icon"
-                          onClick={() => handleDeleteChat(spaceId, chatId)}
-                        />
-                      </div>
-                    ))
+                          <FontAwesomeIcon
+                            icon={faTrash}
+                            className="ml-2 text-[var(--foreground)] cursor-pointer delete-icon"
+                            onClick={() => handleDeleteChat(spaceId, chatId)}
+                          />
+                        </div>
+                      ))
                   )}
                 </div>
+
+                {/* ChatPlus Button and Group Chats Section */}
+                {spaceId !== personalAssistantSpaceId && (
+                  <div className="mt-2 pl-4 relative">
+                    <button
+                      onClick={() => {
+                        setCurrentSpaceId(spaceId);
+                        setCurrentChatId(null);
+                        setShowChatPlus(true);
+                      }}
+                      className="w-full text-left bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-lg"
+                    >
+                      Chat +
+                    </button>
+
+                    
+                    <FontAwesomeIcon
+                      icon={faPlus}
+                      onClick={() => createNewChatForChatPlus(spaceId)}
+                      className="absolute top-0 right-0 m-2 cursor-pointer text-[var(--foreground)]"
+                    />
+                    {/* Display group chats (created with ChatPlus) only */}
+                    {Object.keys(spaces[spaceId].chats)
+                      .filter(
+                        (chatId) =>
+                          spaces[spaceId].chats[chatId].chatPlusId !== "NA"
+                      ).length > 0 && (
+                      <div className="mt-2">
+                        {Object.keys(spaces[spaceId].chats)
+                          .filter(
+                            (chatId) =>
+                              spaces[spaceId].chats[chatId].chatPlusId !== "NA"
+                          )
+                          .map((chatId) => (
+                            <div
+                              key={chatId}
+                              className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${
+                                currentChatId === chatId
+                                  ? 'bg-[var(--primary-accent)]'
+                                  : 'bg-[var(--secondary-bg)]'
+                              }`}
+                            >
+                              {editingChatId === chatId ? (
+                                <input
+                                  type="text"
+                                  value={newChatName}
+                                  onChange={(e) => setNewChatName(e.target.value)}
+                                  onBlur={() => handleSaveChatName(spaceId, chatId)}
+                                  className="bg-gray-600 text-white p-1 rounded"
+                                />
+                              ) : (
+                                <span
+                                  onClick={() => switchChat(spaceId, chatId)}
+                                  className="flex-grow"
+                                >
+                                  {spaces[spaceId].chats[chatId].title}
+                                </span>
+                              )}
+                              <FontAwesomeIcon
+                                icon={faEdit}
+                                className="ml-2 text-[var(--foreground)] cursor-pointer"
+                                onClick={() => handleEditChatName(spaceId, chatId)}
+                              />
+                              <FontAwesomeIcon
+                                icon={faTrash}
+                                className="ml-2 text-[var(--foreground)] cursor-pointer delete-icon"
+                                onClick={() => handleDeleteChat(spaceId, chatId)}
+                              />
+                              <FontAwesomeIcon
+                                icon={faShareAlt}
+                                title="Share Chat"
+                                className="ml-2 text-[var(--foreground)] cursor-pointer"
+                                onClick={() => {
+                                  const newUserId = prompt("Enter the Firebase UID of the student to share this chat with:");
+                                  if (newUserId) {
+                                    // Use the unique chatPlusId stored for this chat
+                                    shareChat(spaces[spaceId].chats[chatId].chatPlusId, newUserId);
+                                  }
+                                }}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -999,49 +1195,71 @@ export default function ChatLayout() {
 
         {/* Bottom for new space button */}
         <div className="flex justify-center">
-          {/* Conditionally render the "New Space" button */}
           {(userRole === 'ta' || userRole === 'professor') && (
             <button
               onClick={createNewSpace}
               className="bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-xl"
-              style={{ width: '50%' }} // Button width 50% of the sidebar
+              style={{ width: '50%' }}
             >
               + New Space
             </button>
-
           )}
-
-
-
         </div>
       </div>
 
       {/* Space and Chat UI */}
       <div className="w-4/5 p-4 flex flex-col bg-chat">
         {currentSpaceId && !currentChatId ? (
-          // Check if the userRole is either 'ta' or 'professor' before rendering SpacePage
-          userRole === 'ta' || userRole === 'professor' ? (
-            <SpacePage
-              spaceTitle={spaces[currentSpaceId].title}
-              spaceId={currentSpaceId}
-              handleEditSpaceName={handleEditSpaceName}
-              handleSaveSpaceName={handleSaveSpaceName}
-              handleDeleteSpace={handleDeleteSpace}
-            />
+          currentSpaceId === personalAssistantSpaceId ? (
+            // For the Personal Assistant space, always render the standard page
+            userRole === 'ta' || userRole === 'professor' ? (
+              <SpacePage
+                spaceTitle={spaces[currentSpaceId].title}
+                spaceId={currentSpaceId}
+                handleEditSpaceName={handleEditSpaceName}
+                handleSaveSpaceName={handleSaveSpaceName}
+                handleDeleteSpace={handleDeleteSpace}
+              />
+            ) : (
+              <StudentSpaceManagement
+                currentSpaceId={currentSpaceId}
+                userRole={userRole}
+                handleLogout={handleLogout}
+                whiteLogoOnly={whiteLogoOnly}
+              />
+            )
           ) : (
-            // Render StudentSpaceManagement component if the user is a 'student'
-            <StudentSpaceManagement
-              currentSpaceId={currentSpaceId}
-              userRole={userRole}
-              handleLogout={handleLogout}
-              whiteLogoOnly={whiteLogoOnly}
-            />
+            // For other spaces, allow ChatPlus mode.
+            showChatPlus ? (
+              <ChatPlusPage
+                spaceId={currentSpaceId}
+                spaceTitle={spaces[currentSpaceId].title}
+                handleDeleteSpace={handleDeleteSpace}
+                handleSaveSpaceName={handleSaveSpaceName}
+                handleEditSpaceName={handleEditSpaceName}
+              />
+            ) : userRole === 'ta' || userRole === 'professor' ? (
+              <SpacePage
+                spaceTitle={spaces[currentSpaceId].title}
+                spaceId={currentSpaceId}
+                handleEditSpaceName={handleEditSpaceName}
+                handleSaveSpaceName={handleSaveSpaceName}
+                handleDeleteSpace={handleDeleteSpace}
+              />
+            ) : (
+              <StudentSpaceManagement
+                currentSpaceId={currentSpaceId}
+                userRole={userRole}
+                handleLogout={handleLogout}
+                whiteLogoOnly={whiteLogoOnly}
+              />
+            )
           )
         ) : currentChatId ? (
           <>
             {/* Top Bar with Logo and Profile Icon */}
             <div className="bg-gray-800 bg-transparent p-4 rounded-t-lg flex justify-between items-center">
-            <Image
+              <Image
                 src={theme === 'light' ? blackLogoOnly : whiteLogoOnly}
                 alt="TomoAI Logo"
                 width={100}
@@ -1052,9 +1270,7 @@ export default function ChatLayout() {
               <div className="relative" ref={dropdownRef}>
                 <FontAwesomeIcon
                   icon={faUser}
-                  className={`cursor-pointer ${
-                    theme === 'light' ? 'text-black' : 'text-white'
-                  }`}
+                  className={`cursor-pointer ${theme === 'light' ? 'text-black' : 'text-white'}`}
                   size="lg"
                   onClick={() => setDropdownVisible(!dropdownVisible)}
                 />
@@ -1065,7 +1281,6 @@ export default function ChatLayout() {
                         <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
                       </li>
                       <hr className="border-t border-[var(--border)] my-1" />
-
                       {/* Theme Toggle Button */}
                       <li
                         onClick={toggleTheme}
@@ -1073,9 +1288,10 @@ export default function ChatLayout() {
                           theme === 'light' ? 'bg-[#A3D8F4] text-black' : 'bg-[#2d3748] text-white'
                         }`}
                       >
-                        {theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                        {theme === 'light'
+                          ? 'Switch to Dark Mode'
+                          : 'Switch to Light Mode'}
                       </li>
-
                       <hr className="border-t border-[var(--border)] my-1" />
                       <li
                         onClick={handleLogout}
@@ -1086,7 +1302,6 @@ export default function ChatLayout() {
                     </ul>
                   </div>
                 )}
-
               </div>
             </div>
 
@@ -1103,8 +1318,7 @@ export default function ChatLayout() {
                   spaces[currentSpaceId].chats[currentChatId].messages.map((msg, index) => (
                     <div
                       key={index}
-                      className={`my-2 ${msg.role === 'user' ? 'text-right' : 'text-left flex items-center'
-                        }`}
+                      className={`my-2 ${msg.role === 'user' ? 'text-right' : 'text-left flex items-center'}`}
                     >
                       {msg.role === 'ai' && (
                         <Image
@@ -1115,9 +1329,7 @@ export default function ChatLayout() {
                           className="mr-2"
                         />
                       )}
-                      <p
-                        className={`inline-block p-2 rounded-lg text-[var(--foreground)]`}
->
+                      <p className={`inline-block p-2 rounded-lg text-[var(--foreground)]`}>
                         {msg.content}
                       </p>
                     </div>
@@ -1133,18 +1345,9 @@ export default function ChatLayout() {
               <ChatPage
                 currentSpaceId={currentSpaceId}
                 currentChatId={currentChatId}
-                // Check to prevent accessing undefined `chats`
                 chats={currentSpaceId && spaces[currentSpaceId] ? spaces[currentSpaceId].chats : {}}
-                // updateChatMessages={(chatId, message) => {
-                //   const updatedSpaces = { ...spaces };
-                //   if (updatedSpaces[currentSpaceId] && updatedSpaces[currentSpaceId].chats[chatId]) {
-                //     updatedSpaces[currentSpaceId].chats[chatId].messages.push(message);
-                //     setSpaces(updatedSpaces);
-                //   }
-                // }}
                 updateChatMessages={(chatId, message) => {
                   const updatedSpaces = { ...spaces };
-                
                   if (updatedSpaces[currentSpaceId] && updatedSpaces[currentSpaceId].chats[chatId]) {
                     if (message.role === 'ai' && message.content.response) {
                       const formattedMessage = {
@@ -1162,7 +1365,6 @@ export default function ChatLayout() {
                         )
                       });
                     }
-                
                     setSpaces(updatedSpaces);
                   }
                 }}
@@ -1190,5 +1392,4 @@ export default function ChatLayout() {
       `}</style>
     </div>
   );
-
 }
