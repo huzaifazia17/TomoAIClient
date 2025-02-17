@@ -37,6 +37,11 @@ export default function ChatLayout() {
   const [userRole, setUserRole] = useState(null);
   const [userFirebaseUid, setUserFirebaseUid] = useState(null);
   const [showChatPlus, setShowChatPlus] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareModalChat, setShareModalChat] = useState(null); // { spaceId, chatId }
+  const [shareModalStudents, setShareModalStudents] = useState([]); // List of student objects in the space
+  const [selectedStudents, setSelectedStudents] = useState({}); // { [studentId]: boolean }
+  const [initialSelectedStudents, setInitialSelectedStudents] = useState({});
 
   // Initialize a variable to track the highest space number
   let highestSpaceNumber = 0;
@@ -497,21 +502,14 @@ export default function ChatLayout() {
     setShowChatPlus(false);
   };
 
-  const handleChatPlus = (spaceId) => {
-    setCurrentSpaceId(spaceId);
-    setShowChatPlus(true);
-  };
-
   const createNewChatForChatPlus = async (spaceId) => {
-    let newChatName;
-    setSpaces((prevSpaces) => {
-      const chatCount = prevSpaces[spaceId]?.chats ? Object.keys(prevSpaces[spaceId].chats).length : 0;
-      newChatName = `New Chat ${chatCount + 1}`;
-      return prevSpaces;
-    });
-  
+    const chatCount = spaces[spaceId]?.chats
+      ? Object.values(spaces[spaceId].chats).filter(chat => chat.chatPlusId !== "NA").length
+      : 0;
+    const newChatName = `Chat+ ${chatCount + 1}`;
+    
     const newChatId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-  
+    
     try {
       const newChatPlus = {
         firebaseUid: userFirebaseUid,
@@ -520,21 +518,21 @@ export default function ChatLayout() {
         chatPlusName: newChatName,
         users: [userFirebaseUid],
       };
-  
+    
       const cpResponse = await fetch('http://localhost:3009/api/chatplus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newChatPlus),
       });
-  
+    
       if (!cpResponse.ok) {
         throw new Error('Failed to create chatplus entry');
       }
-  
+    
       const cpData = await cpResponse.json();
       const chatPlusId = cpData.chatPlus.chatPlusId;
       console.log('New ChatPlus entry created:', chatPlusId);
-  
+    
       const response = await fetch('http://localhost:3009/api/chats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -546,13 +544,13 @@ export default function ChatLayout() {
           chatName: newChatName,
         }),
       });
-  
+    
       if (!response.ok) {
         throw new Error('Failed to create chat');
       }
-  
+    
       const newChat = await response.json();
-
+  
       setSpaces((prevSpaces) => ({
         ...prevSpaces,
         [spaceId]: {
@@ -567,29 +565,92 @@ export default function ChatLayout() {
           },
         },
       }));
-  
+    
       setCurrentChatId(newChat.chatId);
     } catch (error) {
       console.error('Error creating chat for chatplus:', error);
     }
   };
+  
 
-  const shareChat = async (chatPlusId, newUserId) => {
+  const openShareModal = async (spaceId, chatId) => {
+    setShareModalChat({ spaceId, chatId });
+    
+    // Fetch students for this space
     try {
-      const response = await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}/users`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: newUserId }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to share chat');
-      }
-      alert('Chat shared successfully!');
+      const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/students`);
+      if (!response.ok) throw new Error('Failed to fetch students');
+      const data = await response.json();
+      setShareModalStudents(data.students);
     } catch (error) {
-      console.error('Error sharing chat:', error);
-      alert('Error sharing chat');
+      console.error('Error fetching students:', error);
     }
+    
+    // Get the chatPlusId from the spaces state
+    const chatPlusId = spaces[spaceId].chats[chatId].chatPlusId;
+    
+    // Fetch the ChatPlus entry to see which users are already added
+    try {
+      const cpResponse = await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}`);
+      if (!cpResponse.ok) throw new Error('Failed to fetch ChatPlus data');
+      const cpData = await cpResponse.json();
+      // Preselect the checkboxes based on the ChatPlus users array
+      const initial = {};
+      cpData.users.forEach((userId) => {
+        initial[userId] = true;
+      });
+      setInitialSelectedStudents(initial);
+      setSelectedStudents(initial);
+    } catch (error) {
+      console.error('Error fetching ChatPlus data:', error);
+    }
+    
+    setShowShareModal(true);
   };
+
+  const handleCheckboxChange = (studentId, isChecked) => {
+    setSelectedStudents((prev) => ({
+      ...prev,
+      [studentId]: isChecked,
+    }));
+  };
+  
+  const handleShare = async () => {
+    if (!shareModalChat) return;
+    const { spaceId, chatId } = shareModalChat;
+    const chatPlusId = spaces[spaceId].chats[chatId].chatPlusId;
+  
+    // Iterate over each student in the modal list
+    for (const student of shareModalStudents) {
+      const id = student.firebaseUid;
+      const wasInitiallySelected = initialSelectedStudents[id] || false;
+      const isNowSelected = selectedStudents[id] || false;
+      
+      if (isNowSelected && !wasInitiallySelected) {
+        // Student was added – update ChatPlus with PUT route
+        try {
+          await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}/users`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: id }),
+          });
+        } catch (error) {
+          console.error(`Failed to add user ${id} to ChatPlus:`, error);
+        }
+      } else if (!isNowSelected && wasInitiallySelected) {
+        // Student was removed – update ChatPlus with DELETE route
+        try {
+          await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}/users/${id}`, {
+            method: 'DELETE',
+          });
+        } catch (error) {
+          console.error(`Failed to remove user ${id} from ChatPlus:`, error);
+        }
+      }
+    }
+    setShowShareModal(false);
+  };
+  
   
 
   //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1108,15 +1169,16 @@ export default function ChatLayout() {
                   <div className="mt-2 pl-4 relative">
                     <button
                       onClick={() => {
-                        setCurrentSpaceId(spaceId);
-                        setCurrentChatId(null);
-                        setShowChatPlus(true);
+                        if (userRole === 'ta' || userRole === 'professor') {
+                          setCurrentSpaceId(spaceId);
+                          setCurrentChatId(null);
+                          setShowChatPlus(true);
+                        }
                       }}
                       className="w-full text-left bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-lg"
                     >
                       Chat +
                     </button>
-
                     
                     <FontAwesomeIcon
                       icon={faPlus}
@@ -1174,13 +1236,7 @@ export default function ChatLayout() {
                                 icon={faShareAlt}
                                 title="Share Chat"
                                 className="ml-2 text-[var(--foreground)] cursor-pointer"
-                                onClick={() => {
-                                  const newUserId = prompt("Enter the Firebase UID of the student to share this chat with:");
-                                  if (newUserId) {
-                                    // Use the unique chatPlusId stored for this chat
-                                    shareChat(spaces[spaceId].chats[chatId].chatPlusId, newUserId);
-                                  }
-                                }}
+                                onClick={() => openShareModal(spaceId, chatId)}
                               />
                             </div>
                           ))}
@@ -1209,36 +1265,39 @@ export default function ChatLayout() {
 
       {/* Space and Chat UI */}
       <div className="w-4/5 p-4 flex flex-col bg-chat">
-        {currentSpaceId && !currentChatId ? (
-          currentSpaceId === personalAssistantSpaceId ? (
-            // For the Personal Assistant space, always render the standard page
-            userRole === 'ta' || userRole === 'professor' ? (
-              <SpacePage
-                spaceTitle={spaces[currentSpaceId].title}
-                spaceId={currentSpaceId}
-                handleEditSpaceName={handleEditSpaceName}
-                handleSaveSpaceName={handleSaveSpaceName}
-                handleDeleteSpace={handleDeleteSpace}
-              />
-            ) : (
-              <StudentSpaceManagement
-                currentSpaceId={currentSpaceId}
-                userRole={userRole}
-                handleLogout={handleLogout}
-                whiteLogoOnly={whiteLogoOnly}
-              />
-            )
+      {currentSpaceId && !currentChatId ? (
+        currentSpaceId === personalAssistantSpaceId ? (
+          // For the Personal Assistant space, render the SpacePage if TA/professor, else student view.
+          userRole === 'ta' || userRole === 'professor' ? (
+            <SpacePage
+              spaceTitle={spaces[currentSpaceId].title}
+              spaceId={currentSpaceId}
+              handleEditSpaceName={handleEditSpaceName}
+              handleSaveSpaceName={handleSaveSpaceName}
+              handleDeleteSpace={handleDeleteSpace}
+            />
           ) : (
-            // For other spaces, allow ChatPlus mode.
+            <StudentSpaceManagement
+              currentSpaceId={currentSpaceId}
+              userRole={userRole}
+              handleLogout={handleLogout}
+              whiteLogoOnly={whiteLogoOnly}
+            />
+          )
+        ) : (
+          // For non-personal-assistant spaces:
+          userRole === 'ta' || userRole === 'professor' ? (
             showChatPlus ? (
               <ChatPlusPage
                 spaceId={currentSpaceId}
                 spaceTitle={spaces[currentSpaceId].title}
+                chats={spaces[currentSpaceId].chats}
+                switchChat={switchChat} 
                 handleDeleteSpace={handleDeleteSpace}
                 handleSaveSpaceName={handleSaveSpaceName}
                 handleEditSpaceName={handleEditSpaceName}
               />
-            ) : userRole === 'ta' || userRole === 'professor' ? (
+            ) : (
               <SpacePage
                 spaceTitle={spaces[currentSpaceId].title}
                 spaceId={currentSpaceId}
@@ -1246,16 +1305,18 @@ export default function ChatLayout() {
                 handleSaveSpaceName={handleSaveSpaceName}
                 handleDeleteSpace={handleDeleteSpace}
               />
-            ) : (
-              <StudentSpaceManagement
-                currentSpaceId={currentSpaceId}
-                userRole={userRole}
-                handleLogout={handleLogout}
-                whiteLogoOnly={whiteLogoOnly}
-              />
             )
+          ) : (
+            // For students, ignore ChatPlus mode and show the student view.
+            <StudentSpaceManagement
+              currentSpaceId={currentSpaceId}
+              userRole={userRole}
+              handleLogout={handleLogout}
+              whiteLogoOnly={whiteLogoOnly}
+            />
           )
-        ) : currentChatId ? (
+        )
+      ) : currentChatId ? (
           <>
             {/* Top Bar with Logo and Profile Icon */}
             <div className="bg-gray-800 bg-transparent p-4 rounded-t-lg flex justify-between items-center">
@@ -1377,6 +1438,47 @@ export default function ChatLayout() {
           </div>
         )}
       </div>
+      
+      {showShareModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-[var(--secondary-bg)] p-4 rounded-lg">
+            <h2 className="text-2xl m-5">Select Students to Share the Chat With: </h2>
+            <div className="max-h-60 overflow-y-auto mx-5">
+              {shareModalStudents.length > 0 ? (
+                shareModalStudents.map((student) => (
+                  <div key={student.firebaseUid} className="flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents[student.firebaseUid] || false}
+                      onChange={(e) =>
+                        handleCheckboxChange(student.firebaseUid, e.target.checked)
+                      }
+                      className="mr-2"
+                    />
+                    <span>{`${student.firstName} ${student.lastName}`}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">No students found in this space.</p>
+              )}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                className="bg-[var(--primary-accent)] text-[var(--foreground)] px-3 py-1 rounded mr-2"
+                onClick={handleShare}
+              >
+                Share
+              </button>
+              <button
+                className="bg-gray-500 text-white px-3 py-1 rounded"
+                onClick={() => setShowShareModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hide scrollbar for the chat area */}
       <style jsx>{`
