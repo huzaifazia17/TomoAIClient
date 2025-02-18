@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faTrash, faPlus, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
 import Image from 'next/image';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
+import { jsPDF } from 'jspdf';
 
 
 
@@ -321,206 +322,216 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         }
     };
 
+    // Function to generate summary and open it as a PDF.
+  const handleSummary = async (doc) => {
+    try {
+      const response = await fetch('http://localhost:3009/api/document-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentContent: doc.content, documentId: doc._id })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+      const data = await response.json();
+      const summary = data.summary;
+      console.log("Summary text:", summary);
 
+      const pdfDoc = new jsPDF();
+      pdfDoc.setTextColor(0, 0, 0);
+      pdfDoc.setFont("helvetica", "normal");
+      pdfDoc.setFontSize(12);
 
-    return (
-        <div className="flex flex-col h-full">
-            <div className="bg-transparent p-4 flex justify-between items-center">
-                <Image
-                    src={whiteLogoOnly}
-                    alt="TomoAI Logo"
-                    width={100}
-                    height={40}
-                    className="object-contain"
-                />
+      const lines = pdfDoc.splitTextToSize(summary, 180);
+      let yPosition = 20;
+      const pageHeight = pdfDoc.internal.pageSize.getHeight();
+      const margin = 20;
+      lines.forEach((line) => {
+        if (yPosition > pageHeight - margin) {
+          pdfDoc.addPage();
+          yPosition = margin;
+        }
+        pdfDoc.text(line, 10, yPosition);
+        yPosition += 7;
+      });
 
-                <div className="flex items-center justify-center flex-grow">
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={newSpaceName}
-                            onChange={(e) => setNewSpaceName(e.target.value)}
-                            onBlur={saveSpaceName}
-                            className="bg-transparent text-[var(--foreground)] p-2 rounded-lg text-center"
-                            autoFocus
-                        />
-                    ) : (
-                        <h1
-                            className="bg-transparent text-[var(--foreground)] text-2xl cursor-pointer"
-                            onClick={startEditing}
-                        >
-                            {spaceTitle}
-                        </h1>
-                    )}
-                </div>
+      pdfDoc.output('dataurlnewwindow');
+    } catch (error) {
+      console.error('Error generating summary PDF:', error);
+    }
+  };
 
-                <div className="flex items-center space-x-4">
-                    <FontAwesomeIcon
-                        icon={faTrash}
-                        className="text-red-600 cursor-pointer"
-                        onClick={() => handleDeleteSpace(spaceId)}
-                    />
+  return (
+    <div className="flex flex-col h-full">
+      <div className="bg-transparent p-4 flex justify-between items-center">
+        <Image
+          src={whiteLogoOnly}
+          alt="TomoAI Logo"
+          width={100}
+          height={40}
+          className="object-contain"
+        />
 
-                    <div className="relative" ref={dropdownRef}>
-                        <FontAwesomeIcon
-                            icon={faUser}
-                            className="text-[var(--foreground)] cursor-pointer"
-                            size="lg"
-                            onClick={() => setDropdownVisible(!dropdownVisible)}
-                        />
-                        {dropdownVisible && (
-                            <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-lg z-10">
-                                <ul className="py-1">
-                                    <li className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
-                                        <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
-                                    </li>
-                                    <hr className="border-t border-gray-600 my-1" />
-                                    <li onClick={handleLogout} className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
-                                        <FontAwesomeIcon icon={faTrash} className="mr-2" /> Logout
-                                    </li>
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex flex-grow p-4">
-                <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
-                    <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">Document Management</h2>
-                    <table className="w-full text-[var(--foreground)] bg-transparent">
-                        <thead>
-                            <tr>
-                                <th className="text-left p-2">Document Name</th>
-                                <th className="text-center p-2 relative flex items-center justify-center">
-                                    Visibility
-                                    <span className="ml-1 relative group">
-                                        <FontAwesomeIcon icon={faQuestionCircle} className="text-gray-400 text-xs cursor-pointer" />
-                                        <span className="absolute bottom-full mb-2 hidden group-hover:flex bg-black opacity-100 text-[var(--foreground)] text-xs rounded-lg px-2 py-1 w-48 text-center shadow-lg z-50">
-
-                                            Check the box for visibility if you wish for the students to see the document has been uploaded to this space
-                                        </span>
-                                    </span>
-                                </th>
-                                <th className="text-center p-2">Action</th>
-
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {documents.map((doc) => (
-                                <tr key={doc._id} className="text-center">
-                                    <td className="p-2 text-left">{doc.title}</td>
-                                    <td className="p-2 text-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={doc.visibility}
-                                            onChange={() => handleToggleVisibility(doc._id, !doc.visibility)}
-                                            className="form-checkbox"
-                                        />
-                                    </td>
-                                    <td className="p-2 text-center">
-                                        <button
-                                            onClick={() => handleDeleteDocument(doc._id)}
-                                            className="bg-red-500 p-1 rounded"
-                                        >
-                                            <FontAwesomeIcon icon={faTrash} />
-                                        </button>
-                                    </td>
-
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div className="absolute top-4 right-4">
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                            <FontAwesomeIcon icon={faPlus} className="text-green-500 text-2xl" />
-                        </label>
-                        <input
-                            id="file-upload"
-                            type="file"
-                            accept="application/pdf"
-                            onChange={handleUploadDocument}
-                            className="hidden"
-                        />
-                    </div>
-                </div>
-
-
-                <div className="w-px bg-gray-500 mx-4"></div>
-
-                <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
-                    <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">User Management</h2>
-                    <table className="w-full text-[var(--foreground)] bg-transparent">
-                        <thead>
-                            <tr>
-                                <th className="text-left p-2">Name</th>
-                                <th className="text-left p-2">Email</th>
-                                <th className="text-left p-2">Add/Remove</th>
-
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {allUsers.map((user, index) => {
-                                return (
-                                    <tr key={user.firebaseUid || index}>
-                                        <td className="border px-4 py-2">{user.firstName} {user.lastName}</td>
-                                        <td className="border px-4 py-2">{user.email}</td>
-                                        <td className="border px-4 py-2 text-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedUsers.includes(user.firebaseUid)} // Check if the user is in selectedUsers
-                                                onChange={async (e) => {
-                                                    const userId = user.firebaseUid;
-                                                    console.log('User ID:', userId, 'Checked:', e.target.checked); // Log the user ID and checkbox status
-
-                                                    if (e.target.checked) {
-                                                        // Add the user ID to selectedUsers if checked
-                                                        setSelectedUsers((prevSelected) => {
-                                                            const updated = [...prevSelected, userId];
-                                                            console.log('Updated selected users:', updated); // Log the updated selected users
-                                                            return updated;
-                                                        });
-
-                                                        // Update the database with the new user
-                                                        await handleAddUserToSpace(userId);
-                                                    } else {
-                                                        // Remove the user ID from selectedUsers if unchecked
-                                                        setSelectedUsers((prevSelected) => {
-                                                            const updated = prevSelected.filter((id) => id !== userId);
-                                                            console.log('Updated selected users:', updated); // Log the updated selected users
-                                                            return updated;
-                                                        });
-
-                                                        // Call handleRemoveUserFromSpace to remove the user from the database
-                                                        handleRemoveUserFromSpace(userId);
-                                                    }
-                                                }}
-                                            />
-                                            {/*     <button
-                    onClick={() => handleRemoveUserFromSpace(user.firebaseUid)}
-                    className="ml-2 text-red-500"
-                >
-                    <FontAwesomeIcon icon={faTrash} />
-                </button> */}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-
-
-
-
-                        </tbody>
-                    </table>
-                    {/*                     <div className="absolute top-4 right-4">
-                        <button onClick={handleAddUser} className="text-green-500 text-2xl">
-                            <FontAwesomeIcon icon={faPlus} />
-                        </button>
-                    </div> */}
-                </div>
-            </div>
-
-
+        <div className="flex items-center justify-center flex-grow">
+          {isEditing ? (
+            <input
+              type="text"
+              value={newSpaceName}
+              onChange={(e) => setNewSpaceName(e.target.value)}
+              onBlur={saveSpaceName}
+              className="bg-transparent text-[var(--foreground)] p-2 rounded-lg text-center"
+              autoFocus
+            />
+          ) : (
+            <h1
+              className="bg-transparent text-[var(--foreground)] text-2xl cursor-pointer"
+              onClick={startEditing}
+            >
+              {spaceTitle}
+            </h1>
+          )}
         </div>
-    );
+
+        <div className="flex items-center space-x-4">
+          <FontAwesomeIcon
+            icon={faTrash}
+            className="text-red-600 cursor-pointer"
+            onClick={() => handleDeleteSpace(spaceId)}
+          />
+
+          <div className="relative" ref={dropdownRef}>
+            <FontAwesomeIcon
+              icon={faUser}
+              className="text-[var(--foreground)] cursor-pointer"
+              size="lg"
+              onClick={() => setDropdownVisible(!dropdownVisible)}
+            />
+            {dropdownVisible && (
+              <div className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-lg z-10">
+                <ul className="py-1">
+                  <li className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center">
+                    <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
+                  </li>
+                  <hr className="border-t border-gray-600 my-1" />
+                  <li
+                    onClick={handleLogout}
+                    className="px-4 py-2 text-gray-300 hover:bg-gray-600 cursor-pointer flex items-center"
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="mr-2" /> Logout
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-grow p-4">
+        <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
+          <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">Document Management</h2>
+          <table className="w-full text-[var(--foreground)] bg-transparent">
+            <thead>
+              <tr>
+                <th className="text-left p-2">Document Name</th>
+                <th className="text-center p-2">Summary</th>
+                <th className="text-center p-2 relative flex items-center justify-center">
+                  Visibility
+                  <span className="ml-1 relative group">
+                    <FontAwesomeIcon icon={faQuestionCircle} className="text-gray-400 text-xs cursor-pointer" />
+                    <span className="absolute bottom-full mb-2 hidden group-hover:flex bg-black opacity-100 text-[var(--foreground)] text-xs rounded-lg px-2 py-1 w-48 text-center shadow-lg z-50">
+                      Check the box for visibility if you wish for the students to see the document has been uploaded to this space
+                    </span>
+                  </span>
+                </th>
+                <th className="text-center p-2">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((doc) => (
+                <tr key={doc._id} className="text-center">
+                  <td className="p-2 text-left border-b border-gray-700">{doc.title}</td>
+                  <td className="p-2 border-b border-gray-700">
+                    <button
+                      onClick={() => handleSummary(doc)}
+                      className="bg-blue-500 text-white px-2 py-1 rounded"
+                    >
+                      Summary
+                    </button>
+                  </td>
+                  <td className="p-2 text-center border-b border-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={doc.visibility}
+                      onChange={() => handleToggleVisibility(doc._id, !doc.visibility)}
+                      className="form-checkbox"
+                    />
+                  </td>
+                  <td className="p-2 text-center border-b border-gray-700">
+                    <button
+                      onClick={() => handleDeleteDocument(doc._id)}
+                      className="bg-red-500 p-1 rounded"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="absolute top-4 right-4">
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <FontAwesomeIcon icon={faPlus} className="text-green-500 text-2xl" />
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              accept="application/pdf"
+              onChange={handleUploadDocument}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        <div className="w-px bg-gray-500 mx-4"></div>
+
+        <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
+          <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">User Management</h2>
+          <table className="w-full text-[var(--foreground)] bg-transparent">
+            <thead>
+              <tr>
+                <th className="text-left p-2">Name</th>
+                <th className="text-left p-2">Email</th>
+                <th className="text-left p-2">Add/Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allUsers.map((user, index) => (
+                <tr key={user.firebaseUid || index}>
+                  <td className="border px-4 py-2">{user.firstName} {user.lastName}</td>
+                  <td className="border px-4 py-2">{user.email}</td>
+                  <td className="border px-4 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.includes(user.firebaseUid)}
+                      onChange={async (e) => {
+                        const userId = user.firebaseUid;
+                        console.log('User ID:', userId, 'Checked:', e.target.checked);
+                        if (e.target.checked) {
+                          setSelectedUsers((prevSelected) => [...prevSelected, userId]);
+                          await handleAddUserToSpace(userId);
+                        } else {
+                          setSelectedUsers((prevSelected) => prevSelected.filter((id) => id !== userId));
+                          handleRemoveUserFromSpace(userId);
+                        }
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
