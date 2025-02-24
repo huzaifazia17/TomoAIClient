@@ -322,7 +322,189 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         }
     };
 
-    // Function to generate summary and open it as a PDF.
+  // // Function to generate summary and open it as a PDF.
+  // const handleSummary = async (doc) => {
+  //   try {
+  //     const response = await fetch('http://localhost:3009/api/document-summary', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ documentContent: doc.content, documentId: doc._id })
+  //     });
+  //     if (!response.ok) {
+  //       throw new Error('Failed to generate summary');
+  //     }
+  //     const data = await response.json();
+  //     const summary = data.summary;
+  //     console.log("Summary text:", summary);
+
+  //     const pdfDoc = new jsPDF();
+  //     pdfDoc.setTextColor(0, 0, 0);
+  //     pdfDoc.setFont("helvetica", "normal");
+  //     pdfDoc.setFontSize(12);
+
+  //     const lines = pdfDoc.splitTextToSize(summary, 180);
+  //     let yPosition = 20;
+  //     const pageHeight = pdfDoc.internal.pageSize.getHeight();
+  //     const margin = 20;
+  //     lines.forEach((line) => {
+  //       if (yPosition > pageHeight - margin) {
+  //         pdfDoc.addPage();
+  //         yPosition = margin;
+  //       }
+  //       pdfDoc.text(line, 10, yPosition);
+  //       yPosition += 7;
+  //     });
+
+  //     pdfDoc.output('dataurlnewwindow');
+  //   } catch (error) {
+  //     console.error('Error generating summary PDF:', error);
+  //   }
+  // };
+
+  // const handleQuiz = async (doc) => {
+  //   try {
+  //     const response = await fetch('http://localhost:3009/api/document-quiz', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ documentContent: doc.content, documentId: doc._id }),
+  //     });
+  
+  //     if (!response.ok) {
+  //       throw new Error('Failed to generate quiz');
+  //     }
+  
+  //     const data = await response.json();
+  //     const quizText = data.quiz;
+  
+  //     if (!quizText) {
+  //       throw new Error('Quiz generation failed, empty response received');
+  //     }
+  
+  //     // Create PDF
+  //     const pdfDoc = new jsPDF();
+  //     pdfDoc.setTextColor(0, 0, 0);
+  //     pdfDoc.setFont('helvetica', 'normal');
+  //     pdfDoc.setFontSize(12);
+  
+  //     let yPosition = 20;
+  //     const pageHeight = pdfDoc.internal.pageSize.getHeight();
+  //     const margin = 20;
+  
+  //     // Title
+  //     pdfDoc.setFontSize(16);
+  //     pdfDoc.text('Multiple Choice Quiz', 10, yPosition);
+  //     yPosition += 10;
+  //     pdfDoc.setFontSize(12);
+  
+  //     // Split quiz into questions and answer key.
+  //     // Assumes the API returns a string with "Answer Key:" as the divider.
+  //     const quizParts = quizText.split('Answer Key:');
+  //     const quizQuestions = quizParts[0].trim().split('\n'); // Questions and options
+  //     const answerKey = quizParts[1] ? quizParts[1].trim().split(', ') : [];
+  
+  //     // Add quiz questions and options with text wrapping.
+  //     quizQuestions.forEach((line) => {
+  //       const wrappedLines = pdfDoc.splitTextToSize(line, 180);
+  //       wrappedLines.forEach((wrappedLine) => {
+  //         if (yPosition > pageHeight - margin) {
+  //           pdfDoc.addPage();
+  //           yPosition = margin;
+  //         }
+  //         pdfDoc.text(wrappedLine, 10, yPosition);
+  //         yPosition += 7;
+  //       });
+  //     });
+  
+  //     // Add answer key at the bottom.
+  //     if (yPosition > pageHeight - 2 * margin) {
+  //       pdfDoc.addPage();
+  //       yPosition = margin;
+  //     }
+  
+  //     pdfDoc.setFontSize(14);
+  //     pdfDoc.text('Answer Key:', 10, yPosition);
+  //     yPosition += 8;
+  //     pdfDoc.setFontSize(12);
+  
+  //     answerKey.forEach((answer) => {
+  //       const wrappedAnswer = pdfDoc.splitTextToSize(answer, 180);
+  //       wrappedAnswer.forEach((line) => {
+  //         if (yPosition > pageHeight - margin) {
+  //           pdfDoc.addPage();
+  //           yPosition = margin;
+  //         }
+  //         pdfDoc.text(line, 10, yPosition);
+  //         yPosition += 6;
+  //       });
+  //     });
+  
+  //     pdfDoc.output('dataurlnewwindow'); // Open in a new window
+  //   } catch (error) {
+  //     console.error('Error generating quiz PDF:', error);
+  //     alert('Error generating quiz');
+  //   }
+  // };
+
+  // Helper: Parse a single markdown line and return its text plus style settings.
+  function processMarkdownLine(line) {
+    // Default style
+    let style = { fontSize: 12, fontStyle: 'normal', indent: 0 };
+
+    // Check for headers: lines starting with one or more '#' followed by a space.
+    const headerMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      style.fontStyle = 'bold';
+      // Adjust font size based on header level.
+      if (level === 1) style.fontSize = 18;
+      else if (level === 2) style.fontSize = 16;
+      else if (level === 3) style.fontSize = 14;
+      else style.fontSize = 12;
+      line = headerMatch[2];
+    }
+
+    // Check for bullet lists: if line starts with "- " or "* "
+    const bulletMatch = line.match(/^(\-|\*)\s+(.*)$/);
+    if (bulletMatch) {
+      style.indent = 10; // indent bullet items
+      // Replace marker with a bullet character.
+      line = "• " + bulletMatch[2];
+    }
+
+    // Inline formatting: remove markers for bold and italics.
+    // (For inline changes, jsPDF cannot change style mid‐line so we simply remove the markers.)
+    line = line.replace(/\*\*(.*?)\*\*/g, '$1');
+    line = line.replace(/\*(.*?)\*/g, '$1');
+    line = line.replace(/_(.*?)_/g, '$1');
+
+    return { text: line, style };
+  }
+
+  // Helper: Print a processed line with wrapping. Returns the new yPosition.
+  function printMarkdownLine(pdfDoc, text, style, yPosition, margin, maxWidth) {
+    // Set the desired font style and size.
+    pdfDoc.setFont('helvetica', style.fontStyle);
+    pdfDoc.setFontSize(style.fontSize);
+    const indent = style.indent || 0;
+    // Wrap the text (adjust max width for indent)
+    const wrappedLines = pdfDoc.splitTextToSize(text, maxWidth - indent);
+    wrappedLines.forEach((wrappedLine) => {
+      // If we exceed the page, add a new page.
+      if (yPosition > pdfDoc.internal.pageSize.getHeight() - margin) {
+        pdfDoc.addPage();
+        yPosition = margin;
+        // Reset default font after page break.
+        pdfDoc.setFont('helvetica', style.fontStyle);
+        pdfDoc.setFontSize(style.fontSize);
+      }
+      pdfDoc.text(wrappedLine, margin + indent, yPosition);
+      // Increase yPosition using a line-height factor (adjust as needed).
+      yPosition += style.fontSize * 0.8;
+    });
+    return yPosition;
+  }
+
+  // Function to generate summary and open it as a PDF.
   const handleSummary = async (doc) => {
     try {
       const response = await fetch('http://localhost:3009/api/document-summary', {
@@ -339,25 +521,98 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
       const pdfDoc = new jsPDF();
       pdfDoc.setTextColor(0, 0, 0);
+      // Start with default font settings.
       pdfDoc.setFont("helvetica", "normal");
       pdfDoc.setFontSize(12);
 
-      const lines = pdfDoc.splitTextToSize(summary, 180);
       let yPosition = 20;
-      const pageHeight = pdfDoc.internal.pageSize.getHeight();
       const margin = 20;
+      const maxWidth = 180;
+
+      // Process summary text line-by-line.
+      const lines = summary.split('\n');
       lines.forEach((line) => {
-        if (yPosition > pageHeight - margin) {
-          pdfDoc.addPage();
-          yPosition = margin;
-        }
-        pdfDoc.text(line, 10, yPosition);
-        yPosition += 7;
+        const { text, style } = processMarkdownLine(line);
+        yPosition = printMarkdownLine(pdfDoc, text, style, yPosition, margin, maxWidth);
       });
 
       pdfDoc.output('dataurlnewwindow');
     } catch (error) {
       console.error('Error generating summary PDF:', error);
+    }
+  };
+
+  // Function to generate MCQ quiz and open it as a PDF.
+  const handleQuiz = async (doc) => {
+    try {
+      const response = await fetch('http://localhost:3009/api/document-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentContent: doc.content, documentId: doc._id }),
+      });
+    
+      if (!response.ok) {
+        throw new Error('Failed to generate quiz');
+      }
+    
+      const data = await response.json();
+      const quizText = data.quiz;
+    
+      if (!quizText) {
+        throw new Error('Quiz generation failed, empty response received');
+      }
+    
+      const pdfDoc = new jsPDF();
+      pdfDoc.setTextColor(0, 0, 0);
+      pdfDoc.setFont('helvetica', 'normal');
+      pdfDoc.setFontSize(12);
+    
+      let yPosition = 20;
+      const margin = 20;
+      const maxWidth = 180;
+    
+      // Title for the quiz.
+      pdfDoc.setFontSize(16);
+      pdfDoc.setFont('helvetica', 'bold');
+      pdfDoc.text('Multiple Choice Quiz', margin, yPosition);
+      yPosition += 12;
+      pdfDoc.setFontSize(12);
+      pdfDoc.setFont('helvetica', 'normal');
+    
+      // Split quiz text into two parts: questions/options and answer key.
+      const quizParts = quizText.split('Answer Key:');
+      const quizContent = quizParts[0].trim();
+      const answerContent = quizParts[1] ? quizParts[1].trim() : '';
+    
+      // Process the quiz questions/options line-by-line.
+      const quizLines = quizContent.split('\n');
+      quizLines.forEach((line) => {
+        const { text, style } = processMarkdownLine(line);
+        yPosition = printMarkdownLine(pdfDoc, text, style, yPosition, margin, maxWidth);
+      });
+    
+      // Add a break before the answer key.
+      if (yPosition > pdfDoc.internal.pageSize.getHeight() - 2 * margin) {
+        pdfDoc.addPage();
+        yPosition = margin;
+      }
+      pdfDoc.setFontSize(14);
+      pdfDoc.setFont('helvetica', 'bold');
+      yPosition = printMarkdownLine(pdfDoc, 'Answer Key:', { fontSize: 14, fontStyle: 'bold', indent: 0 }, yPosition, margin, maxWidth);
+    
+      // Process the answer key (split by commas if needed).
+      pdfDoc.setFontSize(12);
+      pdfDoc.setFont('helvetica', 'normal');
+      const answerLines = answerContent.split('\n').flatMap(line => line.split(', '));
+      answerLines.forEach((line) => {
+        const { text, style } = processMarkdownLine(line);
+        yPosition = printMarkdownLine(pdfDoc, text, style, yPosition, margin, maxWidth);
+      });
+    
+      pdfDoc.output('dataurlnewwindow'); // Open in a new window
+    } catch (error) {
+      console.error('Error generating quiz PDF:', error);
+      alert('Error generating quiz');
     }
   };
 
@@ -430,53 +685,54 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
           <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">Document Management</h2>
           <table className="w-full text-[var(--foreground)] bg-transparent">
-            <thead>
-              <tr>
-                <th className="text-left p-2">Document Name</th>
-                <th className="text-center p-2">Summary</th>
-                <th className="text-center p-2 relative flex items-center justify-center">
-                  Visibility
-                  <span className="ml-1 relative group">
-                    <FontAwesomeIcon icon={faQuestionCircle} className="text-gray-400 text-xs cursor-pointer" />
-                    <span className="absolute bottom-full mb-2 hidden group-hover:flex bg-black opacity-100 text-[var(--foreground)] text-xs rounded-lg px-2 py-1 w-48 text-center shadow-lg z-50">
-                      Check the box for visibility if you wish for the students to see the document has been uploaded to this space
-                    </span>
-                  </span>
-                </th>
-                <th className="text-center p-2">Action</th>
+          <thead>
+            <tr>
+              <th className="text-left p-2">Document Name</th>
+              <th className="text-center p-2">Summary</th>
+              <th className="text-center p-2">Quiz</th>
+              <th className="text-center p-2">Visibility</th>
+              <th className="text-center p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {documents.map((doc) => (
+              <tr key={doc._id} className="text-center">
+                <td className="p-2 text-left border-b border-gray-700">{doc.title}</td>
+                <td className="p-2 border-b border-gray-700">
+                  <button
+                    onClick={() => handleSummary(doc)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                  >
+                    Summary
+                  </button>
+                </td>
+                <td className="p-2 border-b border-gray-700">
+                  <button
+                    onClick={() => handleQuiz(doc)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                  >
+                    Quiz
+                  </button>
+                </td>
+                <td className="p-2 text-center border-b border-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={doc.visibility}
+                    onChange={() => handleToggleVisibility(doc._id, !doc.visibility)}
+                    className="form-checkbox"
+                  />
+                </td>
+                <td className="p-2 text-center border-b border-gray-700">
+                  <button
+                    onClick={() => handleDeleteDocument(doc._id)}
+                    className="bg-red-500 p-1 rounded"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {documents.map((doc) => (
-                <tr key={doc._id} className="text-center">
-                  <td className="p-2 text-left border-b border-gray-700">{doc.title}</td>
-                  <td className="p-2 border-b border-gray-700">
-                    <button
-                      onClick={() => handleSummary(doc)}
-                      className="bg-blue-500 text-white px-2 py-1 rounded"
-                    >
-                      Summary
-                    </button>
-                  </td>
-                  <td className="p-2 text-center border-b border-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={doc.visibility}
-                      onChange={() => handleToggleVisibility(doc._id, !doc.visibility)}
-                      className="form-checkbox"
-                    />
-                  </td>
-                  <td className="p-2 text-center border-b border-gray-700">
-                    <button
-                      onClick={() => handleDeleteDocument(doc._id)}
-                      className="bg-red-500 p-1 rounded"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            ))}
+          </tbody>
           </table>
           <div className="absolute top-4 right-4">
             <label htmlFor="file-upload" className="cursor-pointer">
