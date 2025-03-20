@@ -15,9 +15,14 @@ import SpacePage from './spacePage';
 import StudentSpaceManagement from './StudentSpaceManagement';
 import ChatPlusPage from './chatPlusPage';
 
+import ProfilePage from './profilePage';
+
+
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { MathJax } from 'better-react-mathjax';
+import { motion } from "framer-motion";
+import { faRobot, faComments, faFolder, faMessage} from '@fortawesome/free-solid-svg-icons';
 
 const saveSpacesToLocalStorage = (spaces) => {
   localStorage.setItem('tomoai-spaces', JSON.stringify(spaces));
@@ -42,6 +47,15 @@ export default function ChatLayout() {
   const [shareModalStudents, setShareModalStudents] = useState([]); // List of student objects in the space
   const [selectedStudents, setSelectedStudents] = useState({}); // { [studentId]: boolean }
   const [initialSelectedStudents, setInitialSelectedStudents] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const [showProfilePage, setShowProfilePage] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+const toggleSidebar = () => {
+  setSidebarCollapsed(!sidebarCollapsed);
+};
+
 
   // Initialize a variable to track the highest space number
   let highestSpaceNumber = 0;
@@ -777,11 +791,21 @@ export default function ChatLayout() {
         );
       }
     }
-  
     return (
-      <div className="bg-[var(--primary-accent)] p-6 rounded-lg shadow-lg">
-        {formattedBlocks}
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="bg-[var(--primary-accent)] p-3 rounded-lg shadow-lg"
+      >
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+        >
+          {formattedBlocks}
+        </motion.div>
+      </motion.div>
     );
   };
 
@@ -1061,7 +1085,8 @@ export default function ChatLayout() {
   return (
     <div className="flex h-screen bg-[var(--background)] text-[var(--foreground)]">
       {/* Sidebar */}
-      <div className="w-1/5 bg-[var(--secondary-bg)] text-[var(--foreground)] p-4 flex flex-col justify-between">
+      <div className={`sidebar bg-[var(--secondary-bg)] text-[var(--foreground)] p-4 flex flex-col justify-between overflow-y-auto transition-all duration-300 
+        ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-1/5'}`}>
         {/* Top section for logo */}
         <div className="flex justify-center mb-4">
           <Image
@@ -1083,9 +1108,11 @@ export default function ChatLayout() {
                 {/* Space */}
                 <div
                   className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${
-                    currentSpaceId === spaceId
-                      ? 'bg-[var(--primary-accent)]'
-                      : 'bg-[var(--secondary-accent)]'
+                    spaceId === personalAssistantSpaceId
+                      ? 'bg-indigo-600'  // Personal Assistant (Purple)
+                      : currentSpaceId === spaceId
+                      ? 'bg-gray-500'  // Selected Space (Blue)
+                      : 'bg-gray-700'  // Regular Space (Neutral Gray)
                   }`}
                   onClick={() => handleSpaceSelect(spaceId)}
                 >
@@ -1098,9 +1125,17 @@ export default function ChatLayout() {
                       className="bg-[var(--primary-accent)] text-[var(--foreground)] p-1 rounded"
                     />
                   ) : (
-                    <span onClick={() => switchSpace(spaceId)} className="flex-grow">
+                    <span onClick={() => switchSpace(spaceId)} className="flex-grow flex items-center">
+                      {spaceId === personalAssistantSpaceId ? (
+                        <FontAwesomeIcon icon={faRobot} className="mr-2 text-[var(--foreground)]" />
+                      ) : (
+                        <FontAwesomeIcon icon={faFolder} className="mr-2 text-[var(--foreground)]" />
+                      )}
                       {spaces[spaceId].title}
                     </span>
+
+
+
                   )}
                   {/* Personal Chat creation */}
                   <FontAwesomeIcon
@@ -1142,12 +1177,11 @@ export default function ChatLayout() {
                               className="bg-gray-600 text-white p-1 rounded"
                             />
                           ) : (
-                            <span
-                              onClick={() => switchChat(spaceId, chatId)}
-                              className="flex-grow"
-                            >
+                            <span onClick={() => switchChat(spaceId, chatId)} className="flex-grow flex items-center">
+                              <FontAwesomeIcon icon={faMessage} className="mr-2 text-[var(--foreground)]" />
                               {spaces[spaceId].chats[chatId].title}
                             </span>
+
                           )}
                           <FontAwesomeIcon
                             icon={faEdit}
@@ -1177,6 +1211,7 @@ export default function ChatLayout() {
                       }}
                       className="w-full text-left bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-lg"
                     >
+                      <FontAwesomeIcon icon={faComments} className="mr-2" />
                       Chat +
                     </button>
                     
@@ -1264,8 +1299,26 @@ export default function ChatLayout() {
       </div>
 
       {/* Space and Chat UI */}
-      <div className="w-4/5 p-4 flex flex-col bg-chat">
-      {currentSpaceId && !currentChatId ? (
+      <div className={`p-4 flex flex-col bg-chat transition-all duration-300 
+        ${sidebarCollapsed ? 'w-[85%] mx-auto' : 'w-4/5'}`}>
+      {/* Sidebar Toggle Button */}
+      {currentChatId && (
+        <button
+        onClick={toggleSidebar}
+        className="fixed top-5 left-5 bg-gray-700 text-white p-2 rounded-full shadow-lg z-50"
+      >
+        ☰
+      </button>
+      )}
+        {showProfilePage ? (
+        <ProfilePage 
+          setCurrentSpaceId={setCurrentSpaceId}
+          setCurrentChatId={setCurrentChatId}
+          setShowProfilePage={setShowProfilePage}
+          currentSpaceId={currentSpaceId}
+          currentChatId={currentChatId}
+        />
+      ) : currentSpaceId && !currentChatId ? (
         currentSpaceId === personalAssistantSpaceId ? (
           // For the Personal Assistant space, render the SpacePage if TA/professor, else student view.
           userRole === 'ta' || userRole === 'professor' ? (
@@ -1338,9 +1391,20 @@ export default function ChatLayout() {
                 {dropdownVisible && (
                   <div className="absolute right-0 mt-2 w-48 bg-[var(--secondary-bg)] rounded-lg shadow-lg z-10">
                     <ul className="py-1 text-[var(--foreground)]">
-                      <li className="px-4 py-2 hover:bg-[var(--hover-bg)] cursor-pointer flex items-center">
-                        <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
-                      </li>
+                    <li
+                      onClick={() => {
+                        setShowProfilePage(true);
+                        setCurrentSpaceId(null);
+                        setCurrentChatId(null);
+                        setShowChatPlus(false);
+                      }}
+                      className="px-4 py-2 hover:bg-[var(--hover-bg)] cursor-pointer flex items-center"
+                    >
+                      <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
+                    </li>
+
+
+
                       <hr className="border-t border-[var(--border)] my-1" />
                       {/* Theme Toggle Button */}
                       <li
@@ -1373,29 +1437,36 @@ export default function ChatLayout() {
                 spaces[currentSpaceId] &&
                 spaces[currentSpaceId].chats[currentChatId] &&
                 spaces[currentSpaceId].chats[currentChatId].messages ? (
-                spaces[currentSpaceId].chats[currentChatId].messages.length === 0 ? (
-                  <p className="text-gray-500">No messages in this chat</p>
-                ) : (
-                  spaces[currentSpaceId].chats[currentChatId].messages.map((msg, index) => (
-                    <div
-                      key={index}
-                      className={`my-2 ${msg.role === 'user' ? 'text-right' : 'text-left flex items-center'}`}
-                    >
-                      {msg.role === 'ai' && (
-                        <Image
-                          src={chatIcon} // Display the chat icon before the AI response
-                          alt="AI Icon"
-                          width={20}
-                          height={20}
-                          className="mr-2"
-                        />
-                      )}
-                      <p className={`inline-block p-2 rounded-lg text-[var(--foreground)]`}>
-                        {msg.content}
-                      </p>
+                <>
+                  {spaces[currentSpaceId].chats[currentChatId].messages.length === 0 ? (
+                    <p className="text-gray-500">No messages in this chat</p>
+                  ) : (
+                    spaces[currentSpaceId].chats[currentChatId].messages.map((msg, index) => (
+                      <div key={index} className={`my-2 ${msg.role === 'user' ? 'text-right' : 'text-left flex items-center'}`}>
+                        {msg.role === 'ai' && (
+                          <Image
+                            src={chatIcon}
+                            alt="AI Icon"
+                            width={20}
+                            height={20}
+                            className="mr-2"
+                          />
+                        )}
+                        <p className={`inline-block p-2 rounded-lg text-[var(--foreground)]`}>
+                          {msg.content}
+                        </p>
+                      </div>
+                    ))
+                  )}
+
+                  {/* 🔥 Show "Tomo AI is thinking..." while AI response is generating */}
+                  {loading && (
+                    <div className="my-2 flex items-center">
+                      <Image src={chatIcon} alt="AI Icon" width={20} height={20} className="mr-2" />
+                      <p className="text-gray-400 animate-pulse">Tomo AI is thinking<span className="dot1">.</span><span className="dot2">.</span><span className="dot3">.</span></p>
                     </div>
-                  ))
-                )
+                  )}
+                </>
               ) : (
                 <p className="text-gray-500">Select a chat to start messaging</p>
               )}
@@ -1410,23 +1481,33 @@ export default function ChatLayout() {
                 updateChatMessages={(chatId, message) => {
                   const updatedSpaces = { ...spaces };
                   if (updatedSpaces[currentSpaceId] && updatedSpaces[currentSpaceId].chats[chatId]) {
-                    if (message.role === 'ai' && message.content.response) {
-                      const formattedMessage = {
-                        role: 'ai',
-                        content: <MessageFormatter content={message.content} />
-                      };
-                      updatedSpaces[currentSpaceId].chats[chatId].messages.push(formattedMessage);
-                    } else {
+                    if (message.role === 'ai') {
+                      setTimeout(() => {
+                        const formattedMessage = {
+                          role: 'ai',
+                          content: (
+                            <div className="p-4 rounded-md bg-[var(--secondary-bg)] text-[var(--foreground)]">
+                              <MessageFormatter content={message.content} />
+                            </div>
+                          )
+                        };
+                        updatedSpaces[currentSpaceId].chats[chatId].messages.push(formattedMessage);
+                        setSpaces(updatedSpaces);
+                        setLoading(false); // Hide loading animation when AI response arrives
+                      }, 2000);
+                    } else if (message.role === 'user') {
+                      // For user messages, add the message and immediately show loading
                       updatedSpaces[currentSpaceId].chats[chatId].messages.push({
                         role: message.role,
                         content: (
-                          <div className={`p-4 rounded-md ${message.role === 'ai' ? `bg-[var(--secondary-bg)] text-[var(--foreground)]` : 'bg-[var(--primary-accent)] text-[var(--foreground)]'}`}>
+                          <div className={`p-2 rounded-md ${message.role === 'ai' ? `bg-[var(--secondary-bg)] text-[var(--foreground)]` : 'bg-[var(--primary-accent)] text-[var(--foreground)]'}`}>
                             {message.content}
                           </div>
                         )
                       });
+                      setSpaces(updatedSpaces);
+                      setLoading(true); // Show "Tomo AI is thinking..." immediately after user sends message
                     }
-                    setSpaces(updatedSpaces);
                   }
                 }}
               />

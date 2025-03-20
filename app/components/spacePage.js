@@ -22,6 +22,8 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     const [allUsers, setAllUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]); // Array to hold selected user IDs
 
+    const [loadingStates, setLoadingStates] = useState({});
+
     const handleLogout = async () => {
         try {
             await signOut(auth);
@@ -325,6 +327,9 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
   // Function to generate summary and open it as a PDF.
   const handleSummary = async (doc) => {
     try {
+
+      setLoadingStates((prev) => ({ ...prev, [doc._id]: "summary" }));
+
       const response = await fetch('http://localhost:3009/api/document-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -355,7 +360,17 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         yPosition += 7;
       });
 
-      pdfDoc.output('dataurlnewwindow');
+      const pdfBlob = pdfDoc.output("blob");
+      const pdfURL = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = pdfURL;
+      a.download = `Generated Summary of ${doc.title}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(pdfURL);
+      
+      setLoadingStates((prev) => ({ ...prev, [doc._id]: null })); // Stop loading immediately
     } catch (error) {
       console.error('Error generating summary PDF:', error);
     }
@@ -363,6 +378,9 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
   const handleQuiz = async (doc) => {
     try {
+
+      setLoadingStates((prev) => ({ ...prev, [doc._id]: "quiz" }));
+
       const response = await fetch('http://localhost:3009/api/document-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -438,7 +456,18 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         });
       });
   
-      pdfDoc.output('dataurlnewwindow'); // Open in a new window
+      const pdfBlob = pdfDoc.output("blob");
+      const pdfURL = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = pdfURL;
+      a.download = `Generated Quiz of ${doc.title}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(pdfURL);
+
+      setLoadingStates((prev) => ({ ...prev, [doc._id]: null })); // Stop loading
+
     } catch (error) {
       console.error('Error generating quiz PDF:', error);
       alert('Error generating quiz');
@@ -701,19 +730,69 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
               <tr key={doc._id} className="text-center">
                 <td className="p-2 text-left border-b border-gray-700">{doc.title}</td>
                 <td className="p-2 border-b border-gray-700">
-                  <button
+                <button
                     onClick={() => handleSummary(doc)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                    className={`px-2 py-1 rounded flex items-center justify-center transition-all ${
+                      loadingStates[doc._id] === "summary" ? "bg-transparent text-white" : "bg-blue-500 text-white"
+                    }`}
+                    disabled={loadingStates[doc._id] === "summary"}
                   >
-                    Summary
+                    {loadingStates[doc._id] === "summary" ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 mr-2 text-white"
+                          viewBox="0 0 50 50"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="25"
+                            cy="25"
+                            r="20"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            strokeDasharray="31.4 31.4"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="text-sm">Loading Summary...</span>
+                      </>
+                    ) : (
+                      "Summary"
+                    )}
                   </button>
                 </td>
                 <td className="p-2 border-b border-gray-700">
                   <button
                     onClick={() => handleQuiz(doc)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded"
+                    className={`px-2 py-1 rounded flex items-center justify-center transition-all ${
+                      loadingStates[doc._id] === "quiz" ? "bg-transparent text-white" : "bg-blue-500 text-white"
+                    }`}
+                    disabled={loadingStates[doc._id] === "quiz"}
                   >
-                    Quiz
+                    {loadingStates[doc._id] === "quiz" ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 mr-2 text-white"
+                          viewBox="0 0 50 50"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="25"
+                            cy="25"
+                            r="20"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            strokeDasharray="31.4 31.4"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="text-sm">Loading Quiz...</span>
+                      </>
+                    ) : (
+                      "Quiz"
+                    )}
                   </button>
                 </td>
                 <td className="p-2 text-center border-b border-gray-700">

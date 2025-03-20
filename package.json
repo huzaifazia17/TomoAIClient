@@ -17,6 +17,7 @@
     "client": "file:",
     "dompurify": "^3.2.0",
     "firebase": "^11.0.1",
+    "framer-motion": "^12.4.10",
     "highlight.js": "^11.11.1",
     "jspdf": "^2.5.2",
     "llamaai": "^1.0.4",

@@ -12,11 +12,14 @@
   --secondary-accent: #A3D8F4; /* Light mode secondary accent */
   --hover-bg: #A3D8F4; /* Light mode hover */
   --border: #d0d0d0; /* Light mode border */
-
   --code-bg: #f5f5f5; /* Light mode code block */
   --code-label: #757575; /* Light mode code label */
-
   --empty-state-text: #808080; /* Light mode empty state */
+
+  --personal-assistant-bg: #D8B4FE; /* Light mode purple */
+  --space-bg: #53c3ff; /* Light mode blue/gray */
+  --regular-chat-bg: #4A5568; /* Light mode gray/black */
+  --chatplus-bg: #63B3ED; /* Light mode light blue */
 }
 
 [data-theme="dark"] {
@@ -27,11 +30,14 @@
   --secondary-accent: #4a5568; /* Dark mode secondary accent */
   --hover-bg: #2f3941; /* Dark mode hover */
   --border: #718096; /* Dark mode border */
-
   --code-bg: #091720; /* Dark mode code block */
   --code-label: #a0aec0; /* Dark mode code label */
-
   --empty-state-text: #718096; /* Dark mode empty state */
+
+  --personal-assistant-bg: #6B46C1; /* Dark mode purple */
+  --space-bg: #005eff; /* Dark mode blue/gray */
+  --regular-chat-bg: #1A202C; /* Dark mode gray/black */
+  --chatplus-bg: #3182CE; /* Dark mode light blue */
 }
 
 
@@ -46,4 +52,38 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+@keyframes blink {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.dot1 { animation: blink 1s infinite; }
+.dot2 { animation: blink 1s infinite 0.2s; }
+.dot3 { animation: blink 1s infinite 0.4s; }
+
+/* Hide scrollbar in WebKit browsers (Chrome, Safari, Edge) */
+.sidebar::-webkit-scrollbar {
+  width: 8px; /* Adjust scrollbar width */
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent; /* Make track invisible */
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #888; /* Set a subtle scrollbar color */
+  border-radius: 4px; /* Round corners for a clean look */
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Darken when hovered */
+}
+
+/* For Firefox */
+.sidebar {
+  scrollbar-width: thin; /* Reduce scrollbar thickness */
+  scrollbar-color: #888 transparent; /* Thumb color, track color */
 }
