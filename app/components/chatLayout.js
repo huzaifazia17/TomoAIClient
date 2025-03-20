@@ -16,6 +16,7 @@ import StudentSpaceManagement from './StudentSpaceManagement';
 import ChatPlusPage from './chatPlusPage';
 
 import ProfilePage from './profilePage';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 
 import { InlineMath, BlockMath } from 'react-katex';
@@ -23,6 +24,7 @@ import 'katex/dist/katex.min.css';
 import { MathJax } from 'better-react-mathjax';
 import { motion } from "framer-motion";
 import { faRobot, faComments, faFolder, faMessage} from '@fortawesome/free-solid-svg-icons';
+
 
 const saveSpacesToLocalStorage = (spaces) => {
   localStorage.setItem('tomoai-spaces', JSON.stringify(spaces));
@@ -80,7 +82,7 @@ const toggleSidebar = () => {
       try {
         const user = auth.currentUser;
         if (user) {
-          const response = await fetch(`http://localhost:3009/api/users/${user.uid}`);
+          const response = await fetch(`${API_BASE_URL}api/users/${user.uid}`);
           const data = await response.json();
           setUserRole(data.role);
         }
@@ -124,7 +126,7 @@ const toggleSidebar = () => {
 
   const handleDeleteSpace = async (spaceId) => {
     try {
-      const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`, {
+      const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -163,7 +165,7 @@ const toggleSidebar = () => {
         const PERSONAL_ASSISTANT_SPACE_ID = `personal-assistant-space-${firebaseUid}`;
 
         // Fetch all spaces for the current user
-        const response = await fetch(`http://localhost:3009/api/spaces?firebaseUid=${firebaseUid}`);
+        const response = await fetch(`${API_BASE_URL}api/spaces?firebaseUid=${firebaseUid}`);
         if (!response.ok) throw new Error("Failed to fetch spaces");
 
         const { spaces: spacesData } = await response.json();
@@ -190,7 +192,7 @@ const toggleSidebar = () => {
           };
 
           // Add the default space to the database
-          const createResponse = await fetch("http://localhost:3009/api/spaces", {
+          const createResponse = await fetch(`${API_BASE_URL}api/spaces`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(defaultSpace),
@@ -239,7 +241,7 @@ const toggleSidebar = () => {
     try {
       const chatPlusId = "NA";
 
-      const response = await fetch('http://localhost:3009/api/chats', {
+      const response = await fetch(`${API_BASE_URL}api/chats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -291,7 +293,7 @@ const toggleSidebar = () => {
 
   const handleDeleteChat = async (spaceId, chatId) => {
     try {
-      const response = await fetch(`http://localhost:3009/api/chats/${chatId}`, {
+      const response = await fetch(`${API_BASE_URL}api/chats/${chatId}`, {
         method: 'DELETE',
       });
 
@@ -328,7 +330,7 @@ const toggleSidebar = () => {
         }
 
         // Fetch all spaces for the current user
-        const response = await fetch(`http://localhost:3009/api/spaces?firebaseUid=${firebaseUid}`);
+        const response = await fetch(`${API_BASE_URL}api/spaces?firebaseUid=${firebaseUid}`);
         if (!response.ok) throw new Error("Failed to fetch spaces");
 
         const { spaces: spacesData } = await response.json();
@@ -346,7 +348,7 @@ const toggleSidebar = () => {
 
         // Fetch chats for all spaces
         for (const space of spacesData) {
-          const chatResponse = await fetch(`http://localhost:3009/api/chats?firebaseUid=${firebaseUid}&spaceId=${space.spaceId}`);
+          const chatResponse = await fetch(`${API_BASE_URL}api/chats?firebaseUid=${firebaseUid}&spaceId=${space.spaceId}`);
           if (!chatResponse.ok) throw new Error(`Failed to fetch chats for spaceId: ${space.spaceId}`);
 
           const { chats } = await chatResponse.json();
@@ -397,7 +399,7 @@ const toggleSidebar = () => {
       setSpaces(updatedSpaces);
       setEditingChatId(null); // Stop editing
 
-      const response = await fetch(`http://localhost:3009/api/chats/${chatId}`, {
+      const response = await fetch(`${API_BASE_URL}api/chats/${chatId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -437,7 +439,7 @@ const toggleSidebar = () => {
         };
 
         // API call to create the new space in the database
-        const response = await fetch('http://localhost:3009/api/spaces', {
+        const response = await fetch(`${API_BASE_URL}api/spaces`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newSpace),
@@ -472,7 +474,7 @@ const toggleSidebar = () => {
   // Function to save the space name in the database
   const handleSaveSpaceName = async (spaceId, newName) => {
     try {
-      const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`, {
+      const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -533,7 +535,7 @@ const toggleSidebar = () => {
         users: [userFirebaseUid],
       };
     
-      const cpResponse = await fetch('http://localhost:3009/api/chatplus', {
+      const cpResponse = await fetch(`${API_BASE_URL}api/chatplus`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newChatPlus),
@@ -547,7 +549,7 @@ const toggleSidebar = () => {
       const chatPlusId = cpData.chatPlus.chatPlusId;
       console.log('New ChatPlus entry created:', chatPlusId);
     
-      const response = await fetch('http://localhost:3009/api/chats', {
+      const response = await fetch(`${API_BASE_URL}api/chats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -592,7 +594,7 @@ const toggleSidebar = () => {
     
     // Fetch students for this space
     try {
-      const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/students`);
+      const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}/students`);
       if (!response.ok) throw new Error('Failed to fetch students');
       const data = await response.json();
       setShareModalStudents(data.students);
@@ -605,7 +607,7 @@ const toggleSidebar = () => {
     
     // Fetch the ChatPlus entry to see which users are already added
     try {
-      const cpResponse = await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}`);
+      const cpResponse = await fetch(`${API_BASE_URL}api/chatplus/${chatPlusId}`);
       if (!cpResponse.ok) throw new Error('Failed to fetch ChatPlus data');
       const cpData = await cpResponse.json();
       // Preselect the checkboxes based on the ChatPlus users array
@@ -643,7 +645,7 @@ const toggleSidebar = () => {
       if (isNowSelected && !wasInitiallySelected) {
         // Student was added – update ChatPlus with PUT route
         try {
-          await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}/users`, {
+          await fetch(`${API_BASE_URL}api/chatplus/${chatPlusId}/users`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: id }),
@@ -654,7 +656,7 @@ const toggleSidebar = () => {
       } else if (!isNowSelected && wasInitiallySelected) {
         // Student was removed – update ChatPlus with DELETE route
         try {
-          await fetch(`http://localhost:3009/api/chatplus/${chatPlusId}/users/${id}`, {
+          await fetch(`${API_BASE_URL}api/chatplus/${chatPlusId}/users/${id}`, {
             method: 'DELETE',
           });
         } catch (error) {

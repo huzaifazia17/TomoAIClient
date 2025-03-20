@@ -7,6 +7,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { auth } from '../firebase/config';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function ChatPlusPage({ spaceId, spaceTitle, switchChat }) {
   const [chatplusChats, setChatplusChats] = useState([]);
   const [combinedChats, setCombinedChats] = useState([]);
@@ -28,7 +30,7 @@ export default function ChatPlusPage({ spaceId, spaceTitle, switchChat }) {
   useEffect(() => {
     async function fetchAllChatPlusChats() {
       try {
-        const response = await fetch(`http://localhost:3009/api/chats/allChatplus?spaceId=${spaceId}`);
+        const response = await fetch(`${API_BASE_URL}api/chats/allChatplus?spaceId=${spaceId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch all ChatPlus chats');
         }
@@ -48,7 +50,7 @@ export default function ChatPlusPage({ spaceId, spaceTitle, switchChat }) {
       const updated = await Promise.all(
         chatplusChats.map(async (chat) => {
           try {
-            const response = await fetch(`http://localhost:3009/api/chatplus/${chat.chatPlusId}`);
+            const response = await fetch(`${API_BASE_URL}api/chatplus/${chat.chatPlusId}`);
             if (!response.ok) {
               throw new Error('Failed to fetch ChatPlus details');
             }
@@ -81,7 +83,7 @@ export default function ChatPlusPage({ spaceId, spaceTitle, switchChat }) {
       await Promise.all(
         Array.from(uniqueUids).map(async (uid) => {
           try {
-            const response = await fetch(`http://localhost:3009/api/users/chatPlus/${uid}`);
+            const response = await fetch(`${API_BASE_URL}api/users/chatPlus/${uid}`);
             if (!response.ok) throw new Error('Failed to fetch user');
             const userData = await response.json();
             newCreators[uid] = userData;

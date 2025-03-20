@@ -13,6 +13,8 @@ import {
   faUserTie
 } from "@fortawesome/free-solid-svg-icons";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const ProfilePage = ({ setCurrentSpaceId, setCurrentChatId, setShowProfilePage, currentSpaceId, currentChatId }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ const ProfilePage = ({ setCurrentSpaceId, setCurrentChatId, setShowProfilePage, 
       if (currentUser) {
         try {
           const response = await axios.get(
-            `http://localhost:3009/api/users/${currentUser.uid}`
+            `${API_BASE_URL}api/users/${currentUser.uid}`
           );
           setUserData(response.data);
         } catch (error) {

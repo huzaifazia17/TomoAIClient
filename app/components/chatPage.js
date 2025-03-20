@@ -209,6 +209,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ChatPage({ currentSpaceId, currentChatId, updateChatMessages }) {
   const [prompt, setPrompt] = useState(''); // User's input prompt
@@ -221,7 +222,7 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
   useEffect(() => {
     const fetchSampleQuestions = async () => {
       try {
-        const res = await axios.post('http://localhost:3009/api/chat', {
+        const res = await axios.post(`${API_BASE_URL}api/chat`, {
           spaceId: currentSpaceId,
         });
         if (res.data.sampleQuestions) {
@@ -247,7 +248,7 @@ export default function ChatPage({ currentSpaceId, currentChatId, updateChatMess
     updateChatMessages(currentChatId, userMessage); // Update chat with user input
   
     try {
-      const res = await axios.post('http://localhost:3009/api/chat', { prompt, spaceId: currentSpaceId });
+      const res = await axios.post(`${API_BASE_URL}api/chat`, { prompt, spaceId: currentSpaceId });
   
       // Parse AI response
       const aiResponse = res.data.message; // Extract the entire response

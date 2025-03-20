@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 import { auth } from "../firebase/config";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
+
+const PI_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -9,6 +9,7 @@ import Image from 'next/image';
 import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 import { jsPDF } from 'jspdf';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 
 export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, handleDeleteSpace }) {
@@ -53,7 +54,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     useEffect(() => {
         const fetchDocuments = async () => {
             try {
-                const response = await fetch(`http://localhost:3009/api/documents?spaceId=${spaceId}`);
+                const response = await fetch(`${API_BASE_URL}api/documents?spaceId=${spaceId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch documents');
                 }
@@ -95,7 +96,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
             formData.append('spaceId', spaceId); // Add the spaceId
             formData.append('title', file.name); // Add the document title
 
-            const response = await fetch('http://localhost:3009/api/upload-pdf', {
+            const response = await fetch(`${API_BASE_URL}api/upload-pdf`, {
                 method: 'POST',
                 body: formData,
             });
@@ -151,7 +152,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     // Function to handle document deletion
     const handleDeleteDocument = async (documentId) => {
         try {
-            const response = await fetch(`http://localhost:3009/api/documents/${documentId}`, {
+            const response = await fetch(`${API_BASE_URL}api/documents/${documentId}`, {
                 method: 'DELETE',
             });
 
@@ -171,7 +172,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     // Handle removing a user from the space
     const handleRemoveUserFromSpace = async (userId) => {
         try {
-            const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users/${userId}`, {
+            const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}/users/${userId}`, {
                 method: 'DELETE',
             });
 
@@ -208,7 +209,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
             console.log("Adding user with firebaseUid:", userId);
 
             // Making a PUT request to add the user to the space
-            const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}/users`, {
+            const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}/users`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -247,7 +248,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
     const fetchAllUsers = async () => {
         try {
-            const response = await fetch('http://localhost:3009/api/users');
+            const response = await fetch(`${API_BASE_URL}api/users`);
             if (!response.ok) {
                 throw new Error('Failed to fetch users');
             }
@@ -263,7 +264,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     useEffect(() => {
         const fetchSpaceUsers = async () => {
             try {
-                const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`);
+                const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}`);
                 if (!response.ok) {
                     throw new Error("Failed to fetch space users");
                 }
@@ -290,7 +291,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     // Fetch users for the current space from the database
     const fetchSpaceUsers = async () => {
         try {
-            const response = await fetch(`http://localhost:3009/api/spaces/${spaceId}`);
+            const response = await fetch(`${API_BASE_URL}api/spaces/${spaceId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch space users');
             }
@@ -303,7 +304,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
     const handleToggleVisibility = async (documentId, newVisibility) => {
         try {
-            const response = await fetch(`http://localhost:3009/api/documents/${documentId}/visibility`, {
+            const response = await fetch(`${API_BASE_URL}api/documents/${documentId}/visibility`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ visibility: newVisibility }),
@@ -330,7 +331,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
       setLoadingStates((prev) => ({ ...prev, [doc._id]: "summary" }));
 
-      const response = await fetch('http://localhost:3009/api/document-summary', {
+      const response = await fetch(`${API_BASE_URL}api/document-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentContent: doc.content, documentId: doc._id })
@@ -381,7 +382,7 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
 
       setLoadingStates((prev) => ({ ...prev, [doc._id]: "quiz" }));
 
-      const response = await fetch('http://localhost:3009/api/document-quiz', {
+      const response = await fetch(`${API_BASE_URL}api/document-quiz`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentContent: doc.content, documentId: doc._id }),

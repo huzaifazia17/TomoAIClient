@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from "../firebase/config"; 
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import axios from 'axios'; 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const SignUp = () => {
   const [firstName, setFirstName] = useState("");
@@ -33,7 +34,7 @@ const SignUp = () => {
       });
 
       // Save user details to MongoDB, including Firebase UID
-      await axios.post('http://localhost:3009/api/users', {  // Pointing to Express backend
+      await axios.post(`${API_BASE_URL}api/users`, {  // Pointing to Express backend
         firebaseUid: user.uid, 
         firstName,
         lastName,

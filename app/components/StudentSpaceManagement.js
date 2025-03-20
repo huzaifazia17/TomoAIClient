@@ -133,6 +133,8 @@ import whiteLogoOnly from '../resources/whiteLogoOnly.png';
 import Image from 'next/image';
 import { jsPDF } from 'jspdf'; // Make sure to install this library
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const StudentSpaceManagement = ({ currentSpaceId, userRole, handleLogout, whiteLogoOnly }) => {
   const [documents, setDocuments] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -158,7 +160,7 @@ const StudentSpaceManagement = ({ currentSpaceId, userRole, handleLogout, whiteL
     if (userRole === 'student' && currentSpaceId) {
       const fetchDocuments = async () => {
         try {
-          const response = await fetch(`http://localhost:3009/api/documents?spaceId=${currentSpaceId}`);
+          const response = await fetch(`${API_BASE_URL}api/documents?spaceId=${currentSpaceId}`);
           if (response.ok) {
             const data = await response.json();
             // Filter to only include visible documents
@@ -178,7 +180,7 @@ const StudentSpaceManagement = ({ currentSpaceId, userRole, handleLogout, whiteL
 
   const handleSummary = async (doc) => {
     try {
-      const response = await fetch('http://localhost:3009/api/document-summary', {
+      const response = await fetch(`${API_BASE_URL}api/document-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentContent: doc.content, documentId: doc._id })
