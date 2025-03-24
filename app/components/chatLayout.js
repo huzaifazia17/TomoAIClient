@@ -1109,15 +1109,19 @@ const toggleSidebar = () => {
               <div key={spaceId} className="mb-4">
                 {/* Space */}
                 <div
-                  className={`cursor-pointer p-2 rounded-xl flex justify-between items-center ${
-                    spaceId === personalAssistantSpaceId
-                      ? 'bg-indigo-600'  // Personal Assistant (Purple)
-                      : currentSpaceId === spaceId
-                      ? 'bg-gray-500'  // Selected Space (Blue)
-                      : 'bg-gray-700'  // Regular Space (Neutral Gray)
-                  }`}
+                  className="cursor-pointer p-2 rounded-xl flex justify-between items-center transition-all"
+                  style={{
+                    backgroundColor:
+                      spaceId === personalAssistantSpaceId
+                        ? 'var(--personal-assistant-bg)'
+                        : currentSpaceId === spaceId
+                        ? 'var(--space-bg)' // Selected space now gets space-bg
+                        : 'var(--primary-accent)', // Non-selected space gets primary-accent
+                    color: 'var(--foreground)',
+                  }}
                   onClick={() => handleSpaceSelect(spaceId)}
                 >
+
                   {editingSpaceId === spaceId ? (
                     <input
                       type="text"
@@ -1211,7 +1215,7 @@ const toggleSidebar = () => {
                           setShowChatPlus(true);
                         }
                       }}
-                      className="w-full text-left bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-lg"
+                      className="w-full text-left bg-[var(--chatplus-bg)] text-[var(--foreground)] px-4 py-2 rounded-lg"
                     >
                       <FontAwesomeIcon icon={faComments} className="mr-2" />
                       Chat +
@@ -1220,7 +1224,7 @@ const toggleSidebar = () => {
                     <FontAwesomeIcon
                       icon={faPlus}
                       onClick={() => createNewChatForChatPlus(spaceId)}
-                      className="absolute top-0 right-0 m-2 cursor-pointer text-[var(--foreground)]"
+                      className="absolute top-1 right-0 m-2 cursor-pointer text-[var(--foreground)]"
                     />
                     {/* Display group chats (created with ChatPlus) only */}
                     {Object.keys(spaces[spaceId].chats)
@@ -1237,12 +1241,9 @@ const toggleSidebar = () => {
                           .map((chatId) => (
                             <div
                               key={chatId}
-                              className={`cursor-pointer p-2 my-2 rounded-xl flex text-sm justify-between items-center ${
-                                currentChatId === chatId
-                                  ? 'bg-[var(--primary-accent)]'
-                                  : 'bg-[var(--secondary-bg)]'
-                              }`}
-                            >
+                               className="cursor-pointer p-2 my-1 rounded-lg flex items-center justify-between text-sm 
+             bg-[var(--chatplus-bg)] ml-6 w-[90%]"
+    >
                               {editingChatId === chatId ? (
                                 <input
                                   type="text"
@@ -1306,11 +1307,12 @@ const toggleSidebar = () => {
       {/* Sidebar Toggle Button */}
       {currentChatId && (
         <button
-        onClick={toggleSidebar}
-        className="fixed top-5 left-5 bg-gray-700 text-white p-2 rounded-full shadow-lg z-50"
-      >
-        ☰
-      </button>
+          onClick={toggleSidebar}
+          className="fixed top-5 left-5 p-2 rounded-full shadow-lg z-50 
+            bg-[var(--toggle-bg)] text-[var(--toggle-icon)]"
+        >
+          ☰
+        </button>
       )}
         {showProfilePage ? (
         <ProfilePage 
