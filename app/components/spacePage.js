@@ -23,6 +23,8 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
     const [selectedUsers, setSelectedUsers] = useState([]); // Array to hold selected user IDs
 
     const [loadingStates, setLoadingStates] = useState({});
+    const [uploadingFile, setUploadingFile] = useState(false);
+
 
     const handleLogout = async () => {
         try {
@@ -90,6 +92,9 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
                 return;
             }
 
+            setUploadingFile(true); // Set loading state when upload starts
+
+
             const formData = new FormData();
             formData.append('pdf', file);
             formData.append('spaceId', spaceId); // Add the spaceId
@@ -138,7 +143,9 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
         } catch (error) {
             console.error('Error uploading document:', error);
             alert('Error uploading document');
-        }
+        } finally {
+            setUploadingFile(false); // Reset loading state after upload completes
+    }
     };
 
 
@@ -715,6 +722,30 @@ export default function SpacePage({ spaceTitle, spaceId, handleSaveSpaceName, ha
       <div className="flex flex-grow p-4">
         <div className="w-1/2 p-4 bg-transparent rounded-lg relative">
           <h2 className="text-[var(--foreground)] text-xl mb-4 text-center">Document Management</h2>
+
+          {/* Show loading spinner when a file is being uploaded */}
+            {uploadingFile && (
+              <div className="flex justify-center items-center mb-4">
+                <svg
+                  className="animate-spin h-6 w-6 text-[var(--foreground)] mr-2"
+                  viewBox="0 0 50 50"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="25"
+                    cy="25"
+                    r="20"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeDasharray="31.4 31.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="text-[var(--foreground)] text-lg">File Being Uploaded...</span>
+              </div>
+            )}
+
           <table className="w-full text-[var(--foreground)] bg-transparent">
           <thead>
             <tr>

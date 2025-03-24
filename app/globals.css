@@ -17,9 +17,14 @@
   --empty-state-text: #808080; /* Light mode empty state */
 
   --personal-assistant-bg: #D8B4FE; /* Light mode purple */
-  --space-bg: #53c3ff; /* Light mode blue/gray */
+  --space-bg: #73B4FF; /* Light mode blue/gray */
   --regular-chat-bg: #4A5568; /* Light mode gray/black */
-  --chatplus-bg: #63B3ED; /* Light mode light blue */
+  --chatplus-bg: #27dbdb; /* Light mode light blue */
+  --toggle-bg: #A3D8F4;
+  /* Dark mode background (white) */
+  --toggle-icon: #000000;
+  /* Dark mode icon (dark gray) */
+  
 }
 
 [data-theme="dark"] {
@@ -37,7 +42,11 @@
   --personal-assistant-bg: #6B46C1; /* Dark mode purple */
   --space-bg: #005eff; /* Dark mode blue/gray */
   --regular-chat-bg: #1A202C; /* Dark mode gray/black */
-  --chatplus-bg: #3182CE; /* Dark mode light blue */
+  --chatplus-bg: #1E6F6F; /* Dark mode light blue */
+  --toggle-bg: #2d3748;
+  /* Light mode background (gray) */
+  --toggle-icon: #ffffff;
+  
 }
 
 
