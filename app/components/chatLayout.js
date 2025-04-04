@@ -1290,15 +1290,17 @@ const toggleSidebar = () => {
         {/* Bottom for new space button */}
         <div className="flex justify-center">
           {(userRole === 'ta' || userRole === 'professor') && (
-            <button
-              onClick={createNewSpace}
-              className="bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-xl"
-              style={{ width: '50%' }}
-            >
-              + New Space
-            </button>
+            <div className="w-full max-w-md">
+              <button
+                onClick={createNewSpace}
+                className="w-full bg-[var(--primary-accent)] text-[var(--foreground)] px-4 py-2 rounded-xl"
+              >
+                + New Space
+              </button>
+            </div>
           )}
         </div>
+
       </div>
 
       {/* Space and Chat UI */}
